@@ -66,10 +66,71 @@ class LibraryTableView(QTableView):
         self.setShowGrid(False)
         self.setAlternatingRowColors(True)
         
+        self.setAlternatingRowColors(True)
+        
         # Connect signals
         self.doubleClicked.connect(self._on_double_click)
         
+        self._drag_start_pos = None
+
+    def setModel(self, model):
+        """Override setModel to hide columns after model is set"""
+        super().setModel(model)
+        if model:
+            # Hide ID and Path columns by default
+            # Need to import model class here to avoid circular import or use constant values
+            # ID is col 0, Path is col 9
+            self.setColumnHidden(0, True)  # ID
+            self.setColumnHidden(9, True)  # Path
+
+
+    def mousePressEvent(self, event):
+        """Record start position for drag"""
+        if event.button() == Qt.LeftButton:
+            self._drag_start_pos = event.pos()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """Manually trigger drag to ensure it works"""
+        if not (event.buttons() & Qt.LeftButton):
+            super().mouseMoveEvent(event)
+            return
+            
+        if not self._drag_start_pos:
+            return
+            
+        from PySide6.QtWidgets import QApplication
+        if (event.pos() - self._drag_start_pos).manhattanLength() < QApplication.startDragDistance():
+            return
+            
+        self.startDrag(Qt.CopyAction)
+        
+    def _on_header_menu(self, pos):
+        header = self.horizontalHeader()
+        header.setContextMenuPolicy(Qt.CustomContextMenu)
+        header.customContextMenuRequested.connect(self._on_header_menu)
+        
         self._populate_playlist_menu = None # Callback
+    
+    def _on_header_menu(self, pos):
+        """Show header context menu to toggle columns"""
+        header = self.horizontalHeader()
+        menu = QMenu(self)
+        
+        model = self.model()
+        if not model:
+            return
+            
+        # Add checkable actions for each column
+        for i in range(model.columnCount()):
+            col_name = model.headerData(i, Qt.Horizontal)
+            action = menu.addAction(col_name)
+            action.setCheckable(True)
+            action.setChecked(not header.isSectionHidden(i))
+            action.setData(i)
+            action.triggered.connect(lambda checked, col=i: header.setSectionHidden(col, not checked))
+            
+        menu.exec_(header.mapToGlobal(pos))
     
     def set_delegates(self, key_column: int, rating_column: int):
         """Set custom item delegates"""
@@ -170,12 +231,32 @@ class LibraryTableView(QTableView):
         mime = QMimeData()
         mime.setData("application/x-tonemix-track-ids", json.dumps(track_ids).encode())
         
-        from PySide6.QtGui import QDrag
+        from PySide6.QtGui import QDrag, QPixmap, QPainter, QColor, QPen
         drag = QDrag(self)
         drag.setMimeData(mime)
         
-        # Calculate pixmap for drag visual
-        # drag.setPixmap(...) 
+        # Create a pixmap for visual feedback
+        rect = self.visualRect(indexes[0])
+        pixmap = QPixmap(rect.size())
+        pixmap.fill(Qt.transparent)
+        
+        # Get track title for display
+        track = model.get_track(indexes[0].row())
+        track_title = track.title if track and track.title else "Unknown Track"
+        
+        # Truncate if too long
+        if len(track_title) > 40:
+            track_title = track_title[:37] + "..."
+        
+        painter = QPainter(pixmap)
+        painter.setOpacity(0.7)
+        painter.fillRect(pixmap.rect(), QColor(60, 60, 60))
+        painter.setPen(QPen(Qt.white))
+        painter.drawText(pixmap.rect(), Qt.AlignCenter, track_title)
+        painter.end()
+        
+        drag.setPixmap(pixmap)
+        drag.setHotSpot(pixmap.rect().center())
         
         # Execute drag
         import logging

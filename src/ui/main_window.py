@@ -11,7 +11,7 @@ from pathlib import Path
 import logging
 
 from src.ui.widgets.waveform_widget import WaveformWidget
-from src.ui.widgets.table_view import LibraryTableView
+from src.ui.widgets.library_table_view import LibraryTableView
 from src.ui.widgets.sidebar import Sidebar
 from src.ui.widgets.audio_player import AudioPlayer
 # from src.ui.widgets.drop_zone import DropZone
@@ -95,6 +95,9 @@ class MainWindow(QMainWindow):
         
         # Analysis worker
         self.analysis_worker = None
+        
+        # State
+        self._current_playlist_id = None
         
         # Setup UI
         self._create_menu_bar()
@@ -247,10 +250,15 @@ class MainWindow(QMainWindow):
             rating_column=TrackTableModel.COL_RATING
         )
         
+        # Hide internal columns (ID and Path)
+        self.table_view.setColumnHidden(TrackTableModel.COL_ID, True)
+        self.table_view.setColumnHidden(TrackTableModel.COL_PATH, True)
+        
         # Connect signals
         self.table_view.track_double_clicked.connect(self._on_table_double_clicked)
         self.table_view.analyze_requested.connect(self._on_analyze_requested)
         self.table_view.export_requested.connect(self._on_export_requested)
+        self.table_view.delete_requested.connect(self._on_delete_requested)
         self.table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
         
         # Override playlist menu population
@@ -588,7 +596,7 @@ class MainWindow(QMainWindow):
         """Analysis finished"""
         self.progress_bar.setVisible(False)
         self.status_bar.showMessage("Analysis complete", 3000)
-        QMessageBox.information(self, "Analysis Complete", "All tracks have been analyzed")
+        # Removed redundant QMessageBox to avoid "two windows" complaint
     
     def _on_analysis_error(self, error: str):
         """Analysis error"""
@@ -718,6 +726,36 @@ class MainWindow(QMainWindow):
             self._start_analysis(file_paths)
         else:
             logger.error("No file paths found for analysis")
+
+    def _on_delete_requested(self, track_ids: list):
+        """Handle delete request"""
+        if not track_ids:
+            return
+            
+        # Confirm
+        count = len(track_ids)
+        msg = f"Are you sure you want to delete {count} tracks?"
+        if self._current_playlist_id:
+            msg += f" They will be removed from the current playlist."
+        else:
+            msg += f" They will be removed from the library (but not disk)."
+            
+        if QMessageBox.question(self, "Confirm Delete", msg) != QMessageBox.Yes:
+            return
+            
+        if self._current_playlist_id:
+            # Remove from playlist
+            from src.database.repository import PlaylistRepository
+            for t_id in track_ids:
+                PlaylistRepository.remove_track(self._current_playlist_id, t_id)
+            self._load_playlist_tracks(self._current_playlist_id) # Refresh
+        else:
+            # Delete from library
+            for t_id in track_ids:
+                self.repository.delete(t_id)
+            self._load_tracks() # Refresh
+            
+        self.status_bar.showMessage(f"Deleted {count} tracks", 3000)
     
     def _on_export_requested(self, track_ids: list):
         """Export tracks to Rekordbox"""

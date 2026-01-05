@@ -3,8 +3,13 @@ ToneMix Pro - Professional Music Analysis Software
 Main application entry point
 """
 import sys
+import os
 import logging
 from pathlib import Path
+
+# Force Qt to use X11 instead of Wayland (NVIDIA OpenGL compatibility)
+os.environ['QT_QPA_PLATFORM'] = 'xcb'
+os.environ['QT_XCB_GL_INTEGRATION'] = 'xcb_glx'
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))

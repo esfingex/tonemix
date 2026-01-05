@@ -41,6 +41,13 @@ class TrackTableModel(QAbstractTableModel):
     def columnCount(self, parent=QModelIndex()):
         """Return number of columns"""
         return len(self.HEADERS)
+
+    def flags(self, index):
+        """Return item flags - Critical for Drag & Drop"""
+        if not index.isValid():
+            return Qt.NoItemFlags
+        
+        return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsEditable
     
     def data(self, index: QModelIndex, role=Qt.DisplayRole):
         """Return data for index"""

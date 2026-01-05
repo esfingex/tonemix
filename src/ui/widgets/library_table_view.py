@@ -112,6 +112,7 @@ class LibraryTableView(QTableView):
     # Signals
     track_double_clicked = Signal(int)  # track_id
     analyze_requested = Signal(list)  # list of track_ids
+    load_to_deck_requested = Signal(int, str)  # track_id, deck_id
     transcode_requested = Signal(list)  # list of track_ids
     export_requested = Signal(list)  # list of track_ids
     delete_requested = Signal(list)  # list of track_ids
@@ -133,8 +134,8 @@ class LibraryTableView(QTableView):
         # Setup headers
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
-        self.horizontalHeader().setContextMenuPolicy(Qt.CustomContextMenu) # New line
-        self.horizontalHeader().customContextMenuRequested.connect(self._show_header_menu) # New line
+        self.horizontalHeader().setContextMenuPolicy(Qt.CustomContextMenu)
+        self.horizontalHeader().customContextMenuRequested.connect(self._show_header_menu)
         self.verticalHeader().setVisible(False)
         
         # Connect signals
@@ -151,13 +152,66 @@ class LibraryTableView(QTableView):
         self.setItemDelegateForColumn(key_column, self.key_delegate)
         self.setItemDelegateForColumn(rating_column, self.rating_delegate)
     
+    def mousePressEvent(self, event):
+        """Handle mouse press for drag init"""
+        if event.button() == Qt.LeftButton:
+            self._drag_start_pos = event.pos()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """Handle mouse move for drag start"""
+        if not (event.buttons() & Qt.LeftButton):
+            return
+            
+        if not self._drag_start_pos:
+            return
+            
+        from PySide6.QtWidgets import QApplication
+        if (event.pos() - self._drag_start_pos).manhattanLength() < QApplication.startDragDistance():
+            return
+            
+        self.startDrag(Qt.CopyAction)
+
     def _on_double_click(self, index: QModelIndex):
         """Handle double click"""
         if index.isValid():
-            # Get track ID from model (assuming it's in column 0)
-            track_id = self.model().data(self.model().index(index.row(), 0))
-            if track_id:
-                self.track_double_clicked.emit(track_id)
+            # Use robust method: get track from model
+            track = self.model().get_track(index.row())
+            if track and track.id:
+                self.track_double_clicked.emit(track.id)
+
+    def _show_header_menu(self, position):
+        """Show context menu for header"""
+        header = self.horizontalHeader()
+        menu = QMenu(self)
+        
+        # Add actions to toggle columns
+        model = self.model()
+        if not model:
+            return
+            
+        for col in range(model.columnCount()):
+            # Get header name
+            name = model.headerData(col, Qt.Horizontal, Qt.DisplayRole)
+            if not name:
+                continue
+                
+            action = menu.addAction(name)
+            action.setCheckable(True)
+            action.setChecked(not self.isColumnHidden(col))
+            # Use default argument to capture column
+            action.triggered.connect(lambda checked: self.setColumnHidden(col, not checked))
+            
+        menu.exec_(header.mapToGlobal(position))
+
+    def setModel(self, model):
+        """Override setModel to hide columns after model is set"""
+        super().setModel(model)
+        if model:
+            # Hide ID and Path columns by default
+            # ID is col 0, Path is col 9
+            self.setColumnHidden(0, True)  # ID
+            self.setColumnHidden(9, True)  # Path
     
     def _on_rating_clicked(self, index: QModelIndex, new_rating: int):
         """Handle rating change"""
@@ -169,15 +223,38 @@ class LibraryTableView(QTableView):
         menu = QMenu(self)
         
         # Get selected rows
+        # Get selected rows
         selected_rows = self.selectionModel().selectedRows()
+        
+        # If no selection, select the row under context menu
         if not selected_rows:
+            index = self.indexAt(position)
+            if index.isValid():
+                self.selectionModel().select(index, self.selectionModel().Select | self.selectionModel().Rows)
+                selected_rows = self.selectionModel().selectedRows()
+        
+        if not selected_rows:
+            logger.warning("Context menu: No rows selected")
             return
         
         # Get track IDs
-        track_ids = [self.model().data(self.model().index(row.row(), 0)) 
-                     for row in selected_rows]
+        track_ids = self.get_selected_track_ids()
+        
+        if not track_ids:
+            logger.warning("Context menu: No rows/tracks selected")
+            return
+            
+        logger.info(f"Context menu for track IDs: {track_ids}")
         
         # Actions
+        load_a = menu.addAction("🎵 Load to Deck A")
+        load_a.triggered.connect(lambda: self.load_to_deck_requested.emit(track_ids[0], "A"))
+        
+        load_b = menu.addAction("🎵 Load to Deck B")
+        load_b.triggered.connect(lambda: self.load_to_deck_requested.emit(track_ids[0], "B"))
+        
+        menu.addSeparator()
+        
         analyze_action = menu.addAction("🔍 Analyze")
         reanalyze_action = menu.addAction("🔄 Re-analyze")
         menu.addSeparator()
@@ -244,8 +321,8 @@ class LibraryTableView(QTableView):
     
     def startDrag(self, supportedActions):
         """Start drag operation with track IDs"""
-        from PySide6.QtCore import QMimeData, QByteArray
-        from PySide6.QtGui import QDrag
+        from PySide6.QtCore import QMimeData, QByteArray, QPoint
+        from PySide6.QtGui import QDrag, QPixmap, QPainter, QColor
         import json
         
         track_ids = self.get_selected_track_ids()
@@ -255,17 +332,64 @@ class LibraryTableView(QTableView):
         # Create mime data with track IDs
         mime_data = QMimeData()
         mime_data.setText(json.dumps(track_ids))
-        mime_data.setData("application/x-tonemix-tracks", QByteArray(json.dumps(track_ids).encode()))
+        mime_data.setData("application/x-tonemix-track-ids", QByteArray(json.dumps(track_ids).encode()))
         
         # Create drag
         drag = QDrag(self)
         drag.setMimeData(mime_data)
+        
+        # Visual feedback
+        try:
+            indexes = self.selectionModel().selectedRows()
+            if indexes:
+                logger.info("Creating drag visual feedback...")
+                rect = self.visualRect(indexes[0])
+                if rect.isValid() and rect.width() > 0 and rect.height() > 0:
+                    pixmap = QPixmap(rect.size())
+                    pixmap.fill(Qt.transparent)
+                    painter = QPainter(pixmap)
+                    # Background
+                    painter.fillRect(pixmap.rect(), QColor(64, 64, 64, 200)) # Semi-transparent dark
+                    # Border
+                    painter.setPen(QColor(0, 229, 255)) # Cyan
+                    painter.drawRect(0, 0, pixmap.width()-1, pixmap.height()-1)
+                    
+                    # Draw Title
+                    track = self.model().get_track(indexes[0].row())
+                    if track and track.title:
+                        painter.setPen(Qt.white)
+                        font = painter.font()
+                        font.setBold(True)
+                        painter.setFont(font)
+                        painter.drawText(pixmap.rect().adjusted(5, 0, -5, 0), Qt.AlignVCenter | Qt.AlignLeft, track.title)
+                    
+                    painter.end()
+                    
+                    drag.setPixmap(pixmap)
+                    # HotSpot must be integer QPoint
+                    drag.setHotSpot(QPoint(int(pixmap.width()/2), int(pixmap.height()/2)))
+                    logger.info("Drag pixmap set successfully")
+                else:
+                    logger.warning(f"Invalid visual rect for drag: {rect}")
+        except Exception as e:
+            logger.error(f"Error creating drag pixmap: {e}")
         
         # Execute drag
         drag.exec_(Qt.CopyAction)
     
     def get_selected_track_ids(self) -> list:
         """Get list of selected track IDs"""
+        track_ids = []
         selected_rows = self.selectionModel().selectedRows()
-        return [self.model().data(self.model().index(row.row(), 0)) 
-                for row in selected_rows]
+        
+        if not selected_rows:
+            return []
+            
+        for row in selected_rows:
+            # Use robust method: get track object directly from model by row index
+            # This works even if columns are hidden or moved
+            track = self.model().get_track(row.row())
+            if track and track.id:
+                track_ids.append(track.id)
+                
+        return track_ids

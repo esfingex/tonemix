@@ -41,6 +41,13 @@ class DeckWidget(QWidget):
         """Handle drag leave"""
         self.setStyleSheet("") # Clear highlight/border
             
+    def dragMoveEvent(self, event):
+        """Handle drag move - Critical for accepting drops!"""
+        if event.mimeData().hasFormat("application/x-tonemix-track-ids"):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
     def dropEvent(self, event):
         """Handle drop event"""
         self.setStyleSheet("") # Clear highlight
@@ -104,10 +111,10 @@ class DeckWidget(QWidget):
         wave_container = QVBoxLayout()
         wave_container.addStretch() # Space above
         
-        # Waveform - SMALLER HEIGHT
+        # Waveform - CPU Rendering with RGB Colors
         self.waveform = WaveformWidget()
-        self.waveform.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed) # Fixed height
-        self.waveform.setFixedHeight(80) # Smaller fixed height
+        self.waveform.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.waveform.setFixedHeight(120)
         wave_container.addWidget(self.waveform)
         
         wave_container.addStretch() # Space below

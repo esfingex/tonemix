@@ -197,20 +197,21 @@ class AudioProcessor:
                 mid_band.append(np.max(magnitudes[mid_mask]) if np.any(mid_mask) else 0)
                 high_band.append(np.max(magnitudes[high_mask]) if np.any(high_mask) else 0)
             
-            # Convert to numpy arrays and normalize
+            # Convert to numpy arrays
             low_band = np.array(low_band[:target_points])
             mid_band = np.array(mid_band[:target_points])
             high_band = np.array(high_band[:target_points])
             
-            # Normalize each band
-            if np.max(low_band) > 0:
-                low_band = low_band / np.max(low_band)
-            if np.max(mid_band) > 0:
-                mid_band = mid_band / np.max(mid_band)
-            if np.max(high_band) > 0:
-                high_band = high_band / np.max(high_band)
+            # CRITICAL FIX: Normalize all bands together using global max
+            # This preserves relative differences between bands for color variation
+            global_max = max(np.max(low_band), np.max(mid_band), np.max(high_band))
+            if global_max > 0:
+                low_band = low_band / global_max
+                mid_band = mid_band / global_max
+                high_band = high_band / global_max
             
             logger.debug(f"Generated spectral waveform: {len(low_band)} points")
+            logger.info(f"Spectral - Low avg:{low_band.mean():.3f} max:{low_band.max():.3f}, Mid avg:{mid_band.mean():.3f} max:{mid_band.max():.3f}, High avg:{high_band.mean():.3f} max:{high_band.max():.3f}")
             
             return {
                 'low': low_band,

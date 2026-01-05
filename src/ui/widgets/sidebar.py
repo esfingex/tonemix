@@ -11,6 +11,66 @@ from src.ui.utils.icons import get_icon
 logger = logging.getLogger(__name__)
 
 
+class SidebarTree(QTreeWidget):
+    """Custom TreeWidget to handle drag and drop"""
+    tracks_dropped = Signal(int, list) # playlist_id, track_ids
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.setDragEnabled(True)
+        self.setDropIndicatorShown(True)
+        self.setDragDropMode(QTreeWidget.DropOnly)
+    
+    def dragEnterEvent(self, event):
+        """Handle drag enter"""
+        if event.mimeData().hasFormat("application/x-tonemix-track-ids"):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+    
+    def dragMoveEvent(self, event):
+        """Handle drag move"""
+        if event.mimeData().hasFormat("application/x-tonemix-track-ids"):
+            # Check if hovering over a playlist item
+            item = self.itemAt(event.pos())
+            if item and item.data(0, Qt.UserRole) == "playlist":
+                event.acceptProposedAction()
+            else:
+                event.ignore()
+        else:
+            event.ignore()
+            
+    def dropEvent(self, event):
+        """Handle drop"""
+        import json
+        
+        if not event.mimeData().hasFormat("application/x-tonemix-track-ids"):
+            event.ignore()
+            return
+        
+        # Get dropped item
+        item = self.itemAt(event.pos())
+        if not item or item.data(0, Qt.UserRole) != "playlist":
+            event.ignore()
+            return
+        
+        # Get playlist ID
+        playlist_id = item.data(0, Qt.UserRole + 1)
+        if not playlist_id:
+            event.ignore()
+            return
+        
+        # Get track IDs from mime data
+        track_data = event.mimeData().data("application/x-tonemix-track-ids").data().decode()
+        try:
+            track_ids = json.loads(track_data)
+            self.tracks_dropped.emit(playlist_id, track_ids)
+            event.acceptProposedAction()
+        except:
+            event.ignore()
+
+
 class Sidebar(QWidget):
     """
     Collapsible sidebar for navigation
@@ -28,14 +88,13 @@ class Sidebar(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         
         # Navigation Tree
-        self.tree = QTreeWidget()
+        self.tree = SidebarTree()
         self.tree.setHeaderHidden(True)
         self.tree.setIndentation(20)
         self.tree.setUniformRowHeights(True)
-        self.tree.setDragEnabled(True)
-        self.tree.setAcceptDrops(True)
-        self.tree.setDropIndicatorShown(True)
-        self.tree.setDragDropMode(QTreeWidget.DropOnly)
+        
+        # Forward drop signal
+        self.tree.tracks_dropped.connect(self.tracks_dropped.emit)
         
         # Connect signals
         self.tree.itemClicked.connect(self._on_item_clicked)
@@ -135,52 +194,4 @@ class Sidebar(QWidget):
         item.setData(0, Qt.UserRole, "playlist")
         if playlist_id:
             item.setData(0, Qt.UserRole + 1, playlist_id)  # Store playlist ID
-
-    def _drag_enter_event(self, event):
-        """Handle drag enter"""
-        if event.mimeData().hasFormat("application/x-tonemix-tracks"):
-            event.acceptProposedAction()
-        else:
-            event.ignore()
-    
-    def _drag_move_event(self, event):
-        """Handle drag move"""
-        if event.mimeData().hasFormat("application/x-tonemix-tracks"):
-            # Check if hovering over a playlist item
-            item = self.tree.itemAt(event.pos())
-            if item and item.data(0, Qt.UserRole) == "playlist":
-                event.acceptProposedAction()
-            else:
-                event.ignore()
-        else:
-            event.ignore()
-    
-    def _drop_event(self, event):
-        """Handle drop"""
-        import json
-        
-        if not event.mimeData().hasFormat("application/x-tonemix-tracks"):
-            event.ignore()
-            return
-        
-        # Get dropped item
-        item = self.tree.itemAt(event.pos())
-        if not item or item.data(0, Qt.UserRole) != "playlist":
-            event.ignore()
-            return
-        
-        # Get playlist ID
-        playlist_id = item.data(0, Qt.UserRole + 1)
-        if not playlist_id:
-            logger.warning("Playlist item has no ID")
-            event.ignore()
-            return
-        
-        # Get track IDs from mime data
-        track_data = event.mimeData().data("application/x-tonemix-tracks").data().decode()
-        track_ids = json.loads(track_data)
-        
-        # Emit signal
-        self.tracks_dropped.emit(playlist_id, track_ids)
-        event.acceptProposedAction()
 

@@ -8,6 +8,8 @@ numpy==1.26.4
 PySide6==6.6.1
 PySide6-Addons==6.6.1
 PySide6-Essentials==6.6.1
+PyOpenGL==3.1.10
+PyOpenGL_accelerate==3.1.10
 
 # Database
 SQLAlchemy==1.4.52
