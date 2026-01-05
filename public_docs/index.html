@@ -1,0 +1,419 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overview - ToneMix Docs</title>
+    <style>
+        
+:root {
+    --bg-color: #121212;
+    --sidebar-bg: #1a1a1a;
+    --text-color: #e0e0e0;
+    --heading-color: #ffffff;
+    --accent-color: #00d9ff;
+    --link-color: #4dc4ff;
+    --code-bg: #2a2a2a;
+    --border-color: #333;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 280px;
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--border-color);
+    padding: 2rem 1.5rem;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--accent-color);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nav-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-item {
+    margin-bottom: 0.5rem;
+}
+
+.nav-link {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s;
+    opacity: 0.8;
+}
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+.nav-link.active {
+    background-color: rgba(0, 217, 255, 0.1);
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 280px;
+    padding: 3rem 4rem;
+    max-width: 900px;
+    width: 100%;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--heading-color);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    line-height: 1.3;
+}
+
+h1 { font-size: 2.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
+h2 { font-size: 1.8rem; margin-top: 2.5rem; }
+h3 { font-size: 1.4rem; }
+
+p { line-height: 1.7; margin-bottom: 1.2rem; }
+
+a { color: var(--link-color); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+ul, ol { margin-bottom: 1.5rem; padding-left: 1.5rem; }
+li { margin-bottom: 0.5rem; line-height: 1.6; }
+
+/* Code Blocks */
+pre {
+    background-color: var(--code-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border-color);
+}
+
+code {
+    font-family: 'Fira Code', 'source-code-pro', monospace;
+    font-size: 0.9em;
+}
+
+p code {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    color: #ff79c6;
+}
+
+img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border-color);
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    background-color: var(--sidebar-bg);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+}
+
+th {
+    background-color: rgba(255, 255, 255, 0.05);
+    font-weight: 600;
+}
+
+/* Footer */
+footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+    color: #666;
+    font-size: 0.9rem;
+}
+
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">🎵 ToneMix Docs</div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="index.html" class="nav-link" class="nav-link active">Overview</a></li><li class="nav-item"><a href="technical_architecture.html" class="nav-link" id="nav-technical_architecture.html">Technical Architecture</a></li><li class="nav-item"><a href="ui_design.html" class="nav-link" id="nav-ui_design.html">UI Design Spec</a></li><li class="nav-item"><a href="github_setup.html" class="nav-link" id="nav-github_setup.html">GitHub Setup</a></li>
+        </ul>
+        <div style="margin-top: 2rem; font-size: 0.8rem; color: #666;">
+            Version: 0.1.0<br>
+            Updated: 2026-01-04
+        </div>
+    </nav>
+    <main class="main-content">
+        <h1 id="tonemix-pro">🎵 ToneMix Pro</h1>
+<p><strong>Professional Music Analysis Software for DJs and Producers</strong></p>
+<p>ToneMix is an open-source music analysis tool inspired by industry standards, designed for professional DJs and music producers. It provides advanced Music Information Retrieval (MIR) capabilities with a modern, intuitive interface.</p>
+<p><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg" />
+<img alt="Python" src="https://img.shields.io/badge/python-3.10+-blue.svg" />
+<img alt="Platform" src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg" /></p>
+<h2 id="features">✨ Features</h2>
+<h3 id="advanced-audio-analysis">🎼 Advanced Audio Analysis</h3>
+<ul>
+<li><strong>Key Detection</strong>: Accurate musical key detection in Camelot Wheel format (1A-12B)</li>
+<li><strong>BPM Detection</strong>: Precise tempo analysis using Essentia's RhythmExtractor</li>
+<li><strong>Energy Level</strong>: Calculated energy rating (0-10) based on RMS and Spectral Centroid</li>
+<li><strong>Waveform Visualization</strong>: Beautiful gradient waveforms with beat grid overlay</li>
+</ul>
+<h3 id="professional-dj-tools">🎚️ Professional DJ Tools</h3>
+<ul>
+<li><strong>Dual Deck Interface</strong>: Side-by-side waveform comparison for mashup creation</li>
+<li><strong>Harmonic Mixing</strong>: Camelot Wheel color-coding for compatible key matching</li>
+<li><strong>BPM Sync</strong>: Automatic tempo synchronization between tracks</li>
+<li><strong>Mashup Tools</strong>: Markers, idea filters, and project saving</li>
+</ul>
+<h3 id="format-support">🔄 Format Support</h3>
+<ul>
+<li><strong>Audio Formats</strong>: FLAC, AIFF, WAV, MP3, M4A</li>
+<li><strong>Transcoding</strong>: High-quality FLAC to AIFF 24-bit conversion</li>
+<li><strong>Metadata Preservation</strong>: Maintains ID3 tags during transcoding</li>
+<li><strong>Rekordbox Export</strong>: Generate compatible XML for Rekordbox import</li>
+</ul>
+<h3 id="library-management">📊 Library Management</h3>
+<ul>
+<li><strong>PostgreSQL Database</strong>: Robust storage for large music libraries</li>
+<li><strong>Smart Playlists</strong>: Filter by key, BPM, energy, and genre</li>
+<li><strong>Cover Art</strong>: Automatic album artwork display</li>
+<li><strong>Rating System</strong>: 5-star rating with visual feedback</li>
+</ul>
+<h2 id="installation">🚀 Installation</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<p>Before installing ToneMix, ensure you have the following:</p>
+<h4 id="required">Required</h4>
+<ul>
+<li><strong>Python 3.10+</strong>: <a href="https://www.python.org/downloads/">Download Python</a></li>
+<li><strong>PostgreSQL 12+</strong>: Database for storing music library</li>
+</ul>
+<p>```bash
+  # Ubuntu/Debian
+  sudo apt update
+  sudo apt install postgresql postgresql-contrib</p>
+<p># macOS
+  brew install postgresql</p>
+<p># Start PostgreSQL service
+  sudo systemctl start postgresql  # Linux
+  brew services start postgresql   # macOS
+  ```</p>
+<ul>
+<li><strong>FFmpeg</strong>: Required for audio transcoding (FLAC → AIFF)</li>
+</ul>
+<p>```bash
+  # Ubuntu/Debian
+  sudo apt install ffmpeg</p>
+<p># macOS
+  brew install ffmpeg
+  ```</p>
+<h4 id="optional-but-recommended">Optional (but recommended)</h4>
+<ul>
+<li><strong>Essentia</strong>: For advanced key and BPM detection</li>
+<li>Without Essentia, ToneMix will use Librosa as fallback</li>
+<li>Installation can be done during setup</li>
+</ul>
+<h3 id="quick-setup-recommended">Quick Setup (Recommended)</h3>
+<p>Use the automated setup script:</p>
+<pre><code class="language-bash"># Clone the repository
+git clone https://github.com/esfingex/tonemix.git
+cd tonemix
+
+# Run setup script (installs dependencies, creates venv)
+./setup.sh
+
+# Configure database (see below)
+
+# Run ToneMix
+./run.sh
+</code></pre>
+<h3 id="manual-setup">Manual Setup</h3>
+<p>If you prefer manual installation:</p>
+<ol>
+<li><strong>Clone the repository</strong></li>
+</ol>
+<p><code>bash
+   git clone https://github.com/esfingex/tonemix.git
+   cd tonemix</code></p>
+<ol start="2">
+<li><strong>Create virtual environment</strong></li>
+</ol>
+<p><code>bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate</code></p>
+<ol start="3">
+<li><strong>Install Python dependencies</strong></li>
+</ol>
+<p><code>bash
+   pip install -r requirements.txt</code></p>
+<ol start="4">
+<li><strong>Create PostgreSQL database</strong></li>
+</ol>
+<p>```bash
+   # Switch to postgres user
+   sudo -u postgres psql</p>
+<p># In PostgreSQL prompt:
+   CREATE DATABASE tonemix;
+   CREATE USER tonemix_user WITH PASSWORD 'your_password';
+   GRANT ALL PRIVILEGES ON DATABASE tonemix TO tonemix_user;
+   \q
+   ```</p>
+<ol start="5">
+<li><strong>Configure environment</strong></li>
+</ol>
+<p>```bash
+   # Copy environment template
+   cp .env.example .env</p>
+<p># Edit .env with your database credentials
+   nano .env
+   ```</p>
+<p>Update these values in <code>.env</code>:</p>
+<p><code>env
+   DB_PASSWORD=your_password</code></p>
+<ol start="6">
+<li><strong>Run ToneMix</strong></li>
+</ol>
+<p><code>bash
+   python main.py</code></p>
+<h3 id="verifying-installation">Verifying Installation</h3>
+<p>When you run ToneMix for the first time, you should see:</p>
+<pre><code>🎵 ToneMix Pro v0.1.0
+============================================================
+📋 Configuration:
+  Database: localhost:5432/tonemix
+  ✅ Essentia available
+  ✅ FFmpeg available
+✅ ToneMix Pro is ready!
+</code></pre>
+<p>If you see warnings about missing components:</p>
+<ul>
+<li><strong>Essentia not installed</strong>: <code>pip install essentia</code> (in venv)</li>
+<li><strong>FFmpeg not found</strong>: Install using instructions above</li>
+<li><strong>Database error</strong>: Check PostgreSQL is running and credentials are correct</li>
+</ul>
+<h2 id="screenshots">🎨 Screenshots</h2>
+<p><em>Coming soon...</em></p>
+<h2 id="technology-stack">🛠️ Technology Stack</h2>
+<ul>
+<li><strong>Audio Analysis</strong>: Essentia, Librosa</li>
+<li><strong>UI Framework</strong>: PySide6 (Qt for Python)</li>
+<li><strong>Database</strong>: PostgreSQL with SQLAlchemy ORM</li>
+<li><strong>Transcoding</strong>: FFmpeg</li>
+<li><strong>Metadata</strong>: Mutagen</li>
+<li><strong>Rekordbox Integration</strong>: pyrekordbox</li>
+</ul>
+<h2 id="documentation">📖 Documentation</h2>
+<ul>
+<li><a href="docs/installation.md">Installation Guide</a></li>
+<li><a href="docs/user_manual.md">User Manual</a></li>
+<li><a href="docs/developer_guide.md">Developer Guide</a></li>
+<li><a href="docs/api_reference.md">API Reference</a></li>
+</ul>
+<h2 id="contributing">🤝 Contributing</h2>
+<p>Contributions are welcome! Please read our <a href="CONTRIBUTING.md">Contributing Guide</a> for details on our code of conduct and the process for submitting pull requests.</p>
+<h3 id="development-setup">Development Setup</h3>
+<pre><code class="language-bash"># Install development dependencies
+pip install -r requirements.txt
+
+# Run tests
+pytest
+
+# Format code
+black src/
+
+# Lint
+flake8 src/
+</code></pre>
+<h2 id="license">📝 License</h2>
+<p>This project is licensed under the MIT License - see the <a href="LICENSE">LICENSE</a> file for details.</p>
+<h2 id="acknowledgments">🙏 Acknowledgments</h2>
+<ul>
+<li>Inspired by professional DJ software aesthetics</li>
+<li>Built with <a href="https://essentia.upf.edu/">Essentia</a> for audio analysis</li>
+<li>UI design influenced by professional DJ software aesthetics</li>
+</ul>
+<h2 id="roadmap">🗺️ Roadmap</h2>
+<h3 id="phase-1-completed">Phase 1 ✅ COMPLETED</h3>
+<ul>
+<li>[x] Project structure and architecture</li>
+<li>[x] Core audio analysis engine (Essentia + Librosa)</li>
+<li>[x] Database models and repository (PostgreSQL + SQLAlchemy)</li>
+<li>[x] Complete UI with waveform visualization</li>
+<li>[x] Rekordbox XML export</li>
+<li>[x] Batch file analysis</li>
+<li>[x] FLAC to AIFF transcoding</li>
+</ul>
+<h3 id="phase-2-in-progress">Phase 2 (In Progress)</h3>
+<ul>
+<li>[ ] Dual deck interface for mashup creation</li>
+<li>[ ] Mashup tools and markers</li>
+<li>[ ] Advanced filtering and search</li>
+<li>[ ] Playlist management</li>
+<li>[ ] Keyboard shortcuts</li>
+<li>[ ] Performance optimizations</li>
+</ul>
+<h3 id="phase-3-planned">Phase 3 (Planned)</h3>
+<ul>
+<li>[ ] Stems separation integration</li>
+<li>[ ] Cloud sync capabilities</li>
+<li>[ ] Mobile companion app</li>
+<li>[ ] Plugin system for extensibility</li>
+<li>[ ] VST/AU plugin support</li>
+</ul>
+<h2 id="support">💬 Support</h2>
+<ul>
+<li><strong>Issues</strong>: <a href="https://github.com/esfingex/tonemix/issues">GitHub Issues</a></li>
+<li><strong>Discussions</strong>: <a href="https://github.com/esfingex/tonemix/discussions">GitHub Discussions</a></li>
+<li><strong>Email</strong>: <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#115;&#117;&#112;&#112;&#111;&#114;&#116;&#64;&#116;&#111;&#110;&#101;&#109;&#105;&#120;&#46;&#100;&#101;&#118;">&#115;&#117;&#112;&#112;&#111;&#114;&#116;&#64;&#116;&#111;&#110;&#101;&#109;&#105;&#120;&#46;&#100;&#101;&#118;</a></li>
+</ul>
+<h2 id="star-history">⭐ Star History</h2>
+<p>If you find ToneMix useful, please consider giving it a star! ⭐</p>
+<hr />
+<p><strong>Made with ❤️ by the ToneMix community</strong></p>
+        <footer>
+            Built with ❤️ by ToneMix Team
+        </footer>
+    </main>
+</body>
+</html>

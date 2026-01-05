@@ -1,0 +1,493 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Architecture - ToneMix Docs</title>
+    <style>
+        
+:root {
+    --bg-color: #121212;
+    --sidebar-bg: #1a1a1a;
+    --text-color: #e0e0e0;
+    --heading-color: #ffffff;
+    --accent-color: #00d9ff;
+    --link-color: #4dc4ff;
+    --code-bg: #2a2a2a;
+    --border-color: #333;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 280px;
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--border-color);
+    padding: 2rem 1.5rem;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--accent-color);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nav-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-item {
+    margin-bottom: 0.5rem;
+}
+
+.nav-link {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s;
+    opacity: 0.8;
+}
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+.nav-link.active {
+    background-color: rgba(0, 217, 255, 0.1);
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 280px;
+    padding: 3rem 4rem;
+    max-width: 900px;
+    width: 100%;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--heading-color);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    line-height: 1.3;
+}
+
+h1 { font-size: 2.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
+h2 { font-size: 1.8rem; margin-top: 2.5rem; }
+h3 { font-size: 1.4rem; }
+
+p { line-height: 1.7; margin-bottom: 1.2rem; }
+
+a { color: var(--link-color); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+ul, ol { margin-bottom: 1.5rem; padding-left: 1.5rem; }
+li { margin-bottom: 0.5rem; line-height: 1.6; }
+
+/* Code Blocks */
+pre {
+    background-color: var(--code-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border-color);
+}
+
+code {
+    font-family: 'Fira Code', 'source-code-pro', monospace;
+    font-size: 0.9em;
+}
+
+p code {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    color: #ff79c6;
+}
+
+img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border-color);
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    background-color: var(--sidebar-bg);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+}
+
+th {
+    background-color: rgba(255, 255, 255, 0.05);
+    font-weight: 600;
+}
+
+/* Footer */
+footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+    color: #666;
+    font-size: 0.9rem;
+}
+
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">🎵 ToneMix Docs</div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="index.html" class="nav-link" id="nav-index.html">Overview</a></li><li class="nav-item"><a href="technical_architecture.html" class="nav-link" class="nav-link active">Technical Architecture</a></li><li class="nav-item"><a href="ui_design.html" class="nav-link" id="nav-ui_design.html">UI Design Spec</a></li><li class="nav-item"><a href="github_setup.html" class="nav-link" id="nav-github_setup.html">GitHub Setup</a></li>
+        </ul>
+        <div style="margin-top: 2rem; font-size: 0.8rem; color: #666;">
+            Version: 0.1.0<br>
+            Updated: 2026-01-04
+        </div>
+    </nav>
+    <main class="main-content">
+        <h1 id="tonemix-professional-music-analysis-software">ToneMix - Professional Music Analysis Software</h1>
+<h2 id="phase-1-core-analysis-engine-ui-foundation">Phase 1: Core Analysis Engine &amp; UI Foundation</h2>
+<p>Diseño e implementación de un software profesional de análisis musical con capacidades MIR (Music Information Retrieval), interfaz gráfica moderna con PySide6, y exportación a Rekordbox.</p>
+<h2 id="user-review-required">User Review Required</h2>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>Decisiones de Arquitectura Clave</strong></p>
+<ul>
+<li><strong>PostgreSQL como Base de Datos</strong>: Se utilizará PostgreSQL para almacenar la librería musical, permitiendo integración futura con el ecosistema Solaria.</li>
+<li><strong>Waveform Rendering Strategy</strong>: Los waveforms se renderizarán usando downsampling a ~2000 puntos para mantener la UI responsiva, incluso con tracks de 7+ minutos.</li>
+<li><strong>Threading Model</strong>: Se usará <code>QThread</code> para análisis de audio y <code>multiprocessing</code> para batch processing de múltiples archivos.</li>
+<li><strong>Camelot Wheel Mapping</strong>: Las tonalidades se almacenarán en formato Camelot (1A-12B) para compatibilidad con DJ workflows.</li>
+</ul>
+<p>[!WARNING]
+<strong>Dependencias Externas Requeridas</strong></p>
+<ul>
+<li>FFmpeg debe estar instalado en el sistema para transcoding</li>
+<li>PostgreSQL server debe estar corriendo</li>
+<li>Las librerías de audio (Essentia, Librosa) requieren compilación nativa</li>
+</ul>
+</blockquote>
+<h2 id="proposed-changes">Proposed Changes</h2>
+<h3 id="project-structure">Project Structure</h3>
+<pre><code>tonemix/
+├── src/
+│   ├── core/
+│   │   ├── analyzer.py          # Audio analysis engine
+│   │   ├── transcoder.py        # FFmpeg wrapper
+│   │   └── audio_processor.py   # Audio loading
+│   ├── database/
+│   │   ├── models.py            # SQLAlchemy models
+│   │   ├── connection.py        # DB connection
+│   │   └── repository.py        # CRUD operations
+│   ├── ui/
+│   │   ├── main_window.py       # Main window
+│   │   └── widgets/
+│   │       ├── waveform_widget.py
+│   │       ├── library_view.py
+│   │       └── drop_zone.py
+│   ├── export/
+│   │   └── rekordbox_exporter.py
+│   └── utils/
+│       ├── camelot.py
+│       └── config.py
+├── requirements.txt
+├── config.yaml
+└── main.py
+</code></pre>
+<hr />
+<h3 id="core-analysis-module">Core Analysis Module</h3>
+<h4 id="new-analyzerpy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/core/analyzer.py">analyzer.py</a></h4>
+<p><strong>Pipeline de análisis musical usando Essentia y Librosa</strong></p>
+<p>Funcionalidades:</p>
+<ul>
+<li><code>analyze_track(audio_path: str) -&gt; TrackAnalysis</code>: Orquesta el análisis completo</li>
+<li><code>extract_key(audio, sr) -&gt; str</code>: Extrae tonalidad en formato Camelot usando Essentia KeyExtractor</li>
+<li><code>extract_bpm(audio, sr) -&gt; float</code>: Detecta BPM con Essentia RhythmExtractor</li>
+<li><code>calculate_energy(audio, sr) -&gt; float</code>: Calcula energía (0-10) basado en RMS + Spectral Centroid</li>
+</ul>
+<p>Implementación técnica:</p>
+<pre><code class="language-python"># Essentia KeyExtractor con perfil electrónico
+key_extractor = essentia.standard.KeyExtractor(profileType='electronic')
+
+# Energy: weighted combination
+rms_energy = np.sqrt(np.mean(audio**2))
+spectral_centroid = librosa.feature.spectral_centroid(y=audio, sr=sr)
+energy = normalize(rms_energy * 0.6 + spectral_centroid_mean * 0.4, 0, 10)
+</code></pre>
+<h4 id="new-transcoderpy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/core/transcoder.py">transcoder.py</a></h4>
+<p><strong>Conversión FLAC a AIFF 24-bit con preservación de metadatos</strong></p>
+<p>Funcionalidades:</p>
+<ul>
+<li><code>transcode_to_aiff(input_path, output_path) -&gt; bool</code></li>
+<li><code>inject_id3_tags(aiff_path, tags) -&gt; bool</code>: Inyecta Initial Key con Mutagen</li>
+</ul>
+<p>FFmpeg command:</p>
+<pre><code class="language-bash">ffmpeg -i input.flac -acodec pcm_s24be -f aiff -map_metadata 0 output.aiff
+</code></pre>
+<h4 id="new-audio_processorpy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/core/audio_processor.py">audio_processor.py</a></h4>
+<p><strong>Carga y preprocesamiento de audio</strong></p>
+<p>Funcionalidades:</p>
+<ul>
+<li><code>load_audio(path) -&gt; Tuple[np.ndarray, int]</code>: Carga con Librosa, resample a 44.1kHz</li>
+<li><code>downsample_waveform(audio, target_points=2000) -&gt; np.ndarray</code>: Reduce datos para rendering</li>
+</ul>
+<hr />
+<h3 id="database-layer">Database Layer</h3>
+<h4 id="new-modelspy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/database/models.py">models.py</a></h4>
+<p><strong>Esquema SQLAlchemy para librería musical</strong></p>
+<pre><code class="language-python">class Track(Base):
+    __tablename__ = 'tracks'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255), nullable=False)
+    artist = Column(String(255))
+    album = Column(String(255))
+
+    # Analysis results
+    key_camelot = Column(String(3))      # &quot;8A&quot;, &quot;12B&quot;
+    key_musical = Column(String(10))     # &quot;C major&quot;, &quot;Am&quot;
+    bpm = Column(Float)
+    energy_level = Column(Float)         # 0-10 scale
+
+    # File info
+    file_path = Column(String(512), unique=True, nullable=False)
+    file_format = Column(String(10))
+    duration_seconds = Column(Float)
+
+    # Waveform (binary)
+    waveform_data = Column(LargeBinary)  # Downsampled ~2000 points
+
+    # Transcoding
+    transcoded_path = Column(String(512))
+    is_transcoded = Column(Boolean, default=False)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    analyzed_at = Column(DateTime)
+</code></pre>
+<h4 id="new-connectionpy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/database/connection.py">connection.py</a></h4>
+<p><strong>Gestión de conexiones PostgreSQL</strong></p>
+<p>Funcionalidades:</p>
+<ul>
+<li><code>get_engine() -&gt; Engine</code>: Singleton para SQLAlchemy engine</li>
+<li><code>get_session() -&gt; Session</code>: Context manager para sesiones</li>
+<li><code>init_database()</code>: Crea todas las tablas</li>
+</ul>
+<h4 id="new-repositorypy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/database/repository.py">repository.py</a></h4>
+<p><strong>CRUD operations para tracks</strong></p>
+<p>Funcionalidades:</p>
+<ul>
+<li><code>create_track(track_data: dict) -&gt; Track</code></li>
+<li><code>get_track_by_path(path: str) -&gt; Optional[Track]</code></li>
+<li><code>update_track(track_id: int, updates: dict) -&gt; Track</code></li>
+<li><code>get_all_tracks(filters: dict = None) -&gt; List[Track]</code></li>
+</ul>
+<hr />
+<h3 id="ui-components-pyside6">UI Components (PySide6)</h3>
+<h4 id="new-main_windowpy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/ui/main_window.py">main_window.py</a></h4>
+<p><strong>Ventana principal con layout Rekordbox-style</strong></p>
+<p>Layout:</p>
+<pre><code>┌─────────────────────────────────────────┐
+│  [Drop Zone - Drag files here]         │
+├─────────────────────────────────────────┤
+│  Library View                           │
+│  Title │ Artist │ Key │ BPM │ Energy   │
+├─────────────────────────────────────────┤
+│  Waveform Widget                        │
+│  [████▌  ▐███  ▐██████▌]  [▶]          │
+└─────────────────────────────────────────┘
+</code></pre>
+<p>Threading:</p>
+<ul>
+<li><code>AnalysisWorker(QThread)</code>: Worker para análisis sin bloquear UI</li>
+<li>Signals: <code>analysis_complete</code>, <code>progress_update</code>, <code>error_occurred</code></li>
+</ul>
+<h4 id="new-waveform_widgetpy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/ui/widgets/waveform_widget.py">waveform_widget.py</a></h4>
+<p><strong>Visualización de forma de onda con QPainter</strong></p>
+<p>Características:</p>
+<ul>
+<li>Rendering con <code>QPainter</code>: líneas verticales por amplitud</li>
+<li>Downsampling: ~2000 puntos pre-calculados desde DB</li>
+<li>Color coding: verde (low) → amarillo (mid) → rojo (high)</li>
+<li>Playhead: línea vertical sincronizada con <code>QMediaPlayer</code></li>
+<li>Interacción: click para seek, scroll para zoom</li>
+</ul>
+<p>Algoritmo:</p>
+<pre><code class="language-python">def paintEvent(self, event):
+    painter = QPainter(self)
+    bar_width = self.width() / len(self.waveform_data)
+
+    for i, amplitude in enumerate(self.waveform_data):
+        x = i * bar_width
+        bar_height = (amplitude / max_amplitude) * (height / 2)
+        color = self.get_energy_color(amplitude)
+        painter.setPen(color)
+        painter.drawLine(x, height/2 - bar_height, 
+                        x, height/2 + bar_height)
+</code></pre>
+<h4 id="new-library_viewpy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/ui/widgets/library_view.py">library_view.py</a></h4>
+<p><strong>QTableView personalizado para librería</strong></p>
+<p>Funcionalidades:</p>
+<ul>
+<li>Custom delegates: Key con color Camelot, BPM con decimales</li>
+<li>Sorting por columna</li>
+<li>Filtrado en tiempo real</li>
+<li>Context menu: Analyze, Transcode, Export, Delete</li>
+<li>Double-click carga waveform</li>
+</ul>
+<h4 id="new-drop_zonepy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/ui/widgets/drop_zone.py">drop_zone.py</a></h4>
+<p><strong>Widget drag &amp; drop para archivos/carpetas</strong></p>
+<p>Funcionalidades:</p>
+<ul>
+<li>Acepta: <code>.flac</code>, <code>.aiff</code>, <code>.wav</code>, <code>.mp3</code>, <code>.m4a</code></li>
+<li>Escaneo recursivo de carpetas</li>
+<li>Validación de formatos</li>
+<li>Emit signal con lista de paths válidos</li>
+</ul>
+<hr />
+<h3 id="rekordbox-integration">Rekordbox Integration</h3>
+<h4 id="new-rekordbox_exporterpy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/export/rekordbox_exporter.py">rekordbox_exporter.py</a></h4>
+<p><strong>Generación de rekordbox.xml compatible</strong></p>
+<p>Funcionalidades:</p>
+<ul>
+<li><code>export_library(tracks: List[Track], output_path: str) -&gt; bool</code></li>
+<li><code>generate_xml_track_node(track: Track) -&gt; ET.Element</code></li>
+<li>Path mapping para archivos transcodificados</li>
+</ul>
+<p>Estructura XML:</p>
+<pre><code class="language-xml">&lt;DJ_PLAYLISTS Version=&quot;1.0.0&quot;&gt;
+  &lt;PRODUCT Name=&quot;ToneMix&quot; Version=&quot;1.0.0&quot;/&gt;
+  &lt;COLLECTION Entries=&quot;100&quot;&gt;
+    &lt;TRACK TrackID=&quot;1&quot; Name=&quot;Title&quot; Artist=&quot;Artist&quot;
+           Tonality=&quot;8A&quot; AverageBpm=&quot;128.00&quot; 
+           Location=&quot;file://localhost/path/file.aiff&quot;/&gt;
+  &lt;/COLLECTION&gt;
+&lt;/DJ_PLAYLISTS&gt;
+</code></pre>
+<hr />
+<h3 id="utilities">Utilities</h3>
+<h4 id="new-camelotpy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/utils/camelot.py">camelot.py</a></h4>
+<p><strong>Conversión notación musical ↔ Camelot Wheel</strong></p>
+<pre><code class="language-python">CAMELOT_MAP = {
+    'C major': '8B', 'A minor': '8A',
+    'G major': '9B', 'E minor': '9A',
+    'D major': '10B', 'B minor': '10A',
+    # ... complete mapping
+}
+</code></pre>
+<h4 id="new-configpy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/src/utils/config.py">config.py</a></h4>
+<p><strong>Carga configuración desde config.yaml</strong></p>
+<hr />
+<h3 id="configuration-files">Configuration Files</h3>
+<h4 id="new-requirementstxt">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/requirements.txt">requirements.txt</a></h4>
+<pre><code class="language-txt">essentia==2.1b6.dev1110
+librosa==0.10.1
+PySide6==6.6.1
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.9
+mutagen==1.47.0
+pyrekordbox==0.1.8
+PyYAML==6.0.1
+pytest==7.4.3
+</code></pre>
+<h4 id="new-configyaml">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/config.yaml">config.yaml</a></h4>
+<pre><code class="language-yaml">database:
+  host: localhost
+  port: 5432
+  name: tonemix
+  user: postgres
+
+audio:
+  sample_rate: 44100
+  waveform_points: 2000
+  supported_formats: [flac, aiff, wav, mp3, m4a]
+
+transcoding:
+  output_format: aiff
+  bit_depth: 24
+</code></pre>
+<h4 id="new-mainpy">[NEW] <a href="file:///home/esfingex/workspace/ToneMix/main.py">main.py</a></h4>
+<p><strong>Entry point de la aplicación</strong></p>
+<pre><code class="language-python">from PySide6.QtWidgets import QApplication
+from src.ui.main_window import MainWindow
+from src.database.connection import init_database
+
+def main():
+    init_database()
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
+</code></pre>
+<hr />
+<h2 id="verification-plan">Verification Plan</h2>
+<h3 id="automated-tests">Automated Tests</h3>
+<pre><code class="language-bash"># Unit tests
+pytest tests/test_analyzer.py -v      # Key, BPM, Energy accuracy
+pytest tests/test_transcoder.py -v    # FLAC→AIFF conversion
+pytest tests/test_waveform.py -v      # Widget rendering
+
+# Integration tests
+pytest tests/test_database.py -v      # CRUD operations
+pytest tests/test_rekordbox_export.py # XML validation
+</code></pre>
+<h3 id="manual-verification">Manual Verification</h3>
+<ol>
+<li><strong>UI Testing</strong>: Drag &amp; drop carpeta → Analyze → Verificar tabla poblada</li>
+<li><strong>Waveform</strong>: Double-click track → Verificar rendering fluido</li>
+<li><strong>Transcoding</strong>: Click derecho → Transcode → Validar AIFF creado</li>
+<li><strong>Export</strong>: Seleccionar tracks → Export to Rekordbox → Validar XML</li>
+</ol>
+<h3 id="performance-criteria">Performance Criteria</h3>
+<ul>
+<li>Waveform rendering: &lt; 100ms para tracks de 7+ minutos</li>
+<li>UI responsiva durante análisis (threading funciona)</li>
+<li>Batch analysis usa múltiples cores</li>
+<li>Memoria &lt; 2GB durante análisis de 50+ tracks</li>
+</ul>
+        <footer>
+            Built with ❤️ by ToneMix Team
+        </footer>
+    </main>
+</body>
+</html>

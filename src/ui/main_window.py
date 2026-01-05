@@ -362,7 +362,7 @@ class MainWindow(QMainWindow):
             "About ToneMix Pro",
             "<h2>ToneMix Pro v0.1.0</h2>"
             "<p>Professional Music Analysis Software</p>"
-            "<p>Open source alternative to Mixed In Key</p>"
+            "<p>Open source MIR tool for DJs</p>"
             "<p><b>Features:</b></p>"
             "<ul>"
             "<li>Key detection (Camelot Wheel)</li>"
