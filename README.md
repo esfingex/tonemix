@@ -51,7 +51,7 @@ ToneMix is an open-source music analysis tool inspired by Mixed In Key, designed
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/yourusername/tonemix.git
+git clone https://github.com/esfingex/tonemix.git
 cd tonemix
 ```
 
@@ -163,8 +163,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 💬 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/tonemix/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/tonemix/discussions)
+- **Issues**: [GitHub Issues](https://github.com/esfingex/tonemix/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/esfingex/tonemix/discussions)
 - **Email**: <support@tonemix.dev>
 
 ## ⭐ Star History
