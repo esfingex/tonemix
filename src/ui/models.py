@@ -143,3 +143,45 @@ class TrackTableModel(QAbstractTableModel):
         if 0 <= row < len(self._tracks):
             return self._tracks[row]
         return None
+
+    def update_track(self, track: Track):
+        """Update a track in the model"""
+        for i, t in enumerate(self._tracks):
+            if t.id == track.id:
+                self._tracks[i] = track
+                # Emit change for entire row
+                self.dataChanged.emit(
+                    self.index(i, 0),
+                    self.index(i, self.columnCount() - 1)
+                )
+                break
+
+    def sort(self, column: int, order):
+        """Sort table by column"""
+        self.layoutAboutToBeChanged.emit()
+        
+        reverse = (order == Qt.DescendingOrder)
+        
+        # Define sort key functions for each column
+        if column == self.COL_ID:
+            self._tracks.sort(key=lambda t: t.id or 0, reverse=reverse)
+        elif column == self.COL_TITLE:
+            self._tracks.sort(key=lambda t: (t.title or "").lower(), reverse=reverse)
+        elif column == self.COL_ARTIST:
+            self._tracks.sort(key=lambda t: (t.artist or "").lower(), reverse=reverse)
+        elif column == self.COL_ALBUM:
+            self._tracks.sort(key=lambda t: (t.album or "").lower(), reverse=reverse)
+        elif column == self.COL_KEY:
+            self._tracks.sort(key=lambda t: t.key_camelot or "", reverse=reverse)
+        elif column == self.COL_BPM:
+            self._tracks.sort(key=lambda t: t.bpm or 0, reverse=reverse)
+        elif column == self.COL_ENERGY:
+            self._tracks.sort(key=lambda t: t.energy_level or 0, reverse=reverse)
+        elif column == self.COL_DURATION:
+            self._tracks.sort(key=lambda t: t.duration_seconds or 0, reverse=reverse)
+        elif column == self.COL_RATING:
+            self._tracks.sort(key=lambda t: t.rating or 0, reverse=reverse)
+        elif column == self.COL_PATH:
+            self._tracks.sort(key=lambda t: (t.file_path or "").lower(), reverse=reverse)
+        
+        self.layoutChanged.emit()

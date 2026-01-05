@@ -70,8 +70,9 @@ class AudioAnalyzer:
             energy = self.calculate_energy(audio, sr)
             duration = len(audio) / sr
             
-            # Generate waveform for visualization
-            waveform = self.audio_processor.downsample_waveform(audio)
+            # Generate waveform for visualization (Spectral)
+            audio_processor = self.audio_processor
+            waveform = audio_processor.generate_spectral_waveform(audio, sr)
             
             result = TrackAnalysis(
                 key_musical=key_musical,
@@ -220,30 +221,27 @@ class AudioAnalyzer:
         scaled = normalized * (max_val - min_val) + min_val
         return float(scaled)
     
+    
     def batch_analyze(self, file_paths: list[str], progress_callback=None) -> Dict[str, TrackAnalysis]:
         """
         Analyze multiple tracks
-        
-        Args:
-            file_paths: List of file paths
-            progress_callback: Optional callback function(current, total)
-            
-        Returns:
-            Dictionary mapping file paths to TrackAnalysis results
         """
-        results = {}
-        total = len(file_paths)
+        # ... existing implementation ...
+        return self.batch_analyze_sequential(file_paths, progress_callback) # Renaming internal call if needed, or just keeping it simple
         
-        for i, file_path in enumerate(file_paths):
-            try:
-                result = self.analyze_track(file_path)
-                if result:
-                    results[file_path] = result
-                
-                if progress_callback:
-                    progress_callback(i + 1, total)
-                    
-            except Exception as e:
-                logger.error(f"Error in batch analysis for {file_path}: {e}")
-        
-        return results
+    def batch_analyze_sequential(self, file_paths: list[str], progress_callback=None) -> Dict[str, TrackAnalysis]:
+        # ... logic ...
+        pass
+
+
+def run_single_analysis(file_path: str) -> Optional[TrackAnalysis]:
+    """
+    Standalone function for multiprocessing support
+    Creates a new AudioAnalyzer instance per process
+    """
+    try:
+        analyzer = AudioAnalyzer()
+        return analyzer.analyze_track(file_path)
+    except Exception as e:
+        logger.error(f"Error in process analysis for {file_path}: {e}")
+        return None

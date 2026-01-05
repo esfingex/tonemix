@@ -66,7 +66,7 @@ class DatabaseManager:
                 logger.info(f"PostgreSQL engine created for {host}:{port}/{name}")
             
             # Initialize session factory once engine is created
-            self._session_factory = sessionmaker(bind=self._engine)
+            self._session_factory = sessionmaker(bind=self._engine, expire_on_commit=False)
                 
         return self._engine
     
@@ -83,7 +83,7 @@ class DatabaseManager:
         if self._engine is None:
             _ = self.get_engine # Accessing the property will initialize _engine and _session_factory
         elif self._session_factory is None:
-            self._session_factory = sessionmaker(bind=self._engine)
+            self._session_factory = sessionmaker(bind=self._engine, expire_on_commit=False)
 
         session = self._session_factory()
         try:

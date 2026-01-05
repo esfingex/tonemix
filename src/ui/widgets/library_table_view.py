@@ -126,9 +126,15 @@ class LibraryTableView(QTableView):
         self.setSortingEnabled(True)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         
+        # Enable drag
+        self.setDragEnabled(True)
+        self.setDragDropMode(QTableView.DragOnly)
+        
         # Setup headers
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.horizontalHeader().setContextMenuPolicy(Qt.CustomContextMenu) # New line
+        self.horizontalHeader().customContextMenuRequested.connect(self._show_header_menu) # New line
         self.verticalHeader().setVisible(False)
         
         # Connect signals
@@ -176,14 +182,19 @@ class LibraryTableView(QTableView):
         reanalyze_action = menu.addAction("🔄 Re-analyze")
         menu.addSeparator()
         
+        # Send to Playlist submenu
+        playlist_menu = menu.addMenu("📋 Send to Playlist")
+        # This will be populated by the main window
+        self._populate_playlist_menu(playlist_menu, track_ids)
+        menu.addSeparator()
+        
         transcode_action = menu.addAction("🎵 Transcode to AIFF")
         menu.addSeparator()
         
         export_action = menu.addAction("📤 Export to Rekordbox")
         menu.addSeparator()
         
-        delete_action = menu.addAction("🗑️ Delete from Library")
-        delete_action.setStyleSheet("color: #f44336;")
+        delete_action = QMenu.addAction(menu, "🗑️ Delete from Library")
         
         # Execute menu
         action = menu.exec_(self.viewport().mapToGlobal(position))
@@ -197,6 +208,61 @@ class LibraryTableView(QTableView):
             self.export_requested.emit(track_ids)
         elif action == delete_action:
             self.delete_requested.emit(track_ids)
+    
+    def _populate_playlist_menu(self, menu, track_ids):
+        """Populate playlist submenu - to be overridden or connected"""
+        # This is a placeholder - the main window will set a proper handler
+        menu.addAction("No playlists available")
+    
+    def _show_header_menu(self, position):
+        """Show context menu for header columns"""
+        header = self.horizontalHeader()
+        menu = QMenu(self)
+        
+        model = self.model()
+        if not model:
+            return
+            
+        for col in range(model.columnCount()):
+            # Skip ID column (always hidden or specifically handled)
+            if col == 0:  # ID
+                continue
+                 
+            action = menu.addAction(model.headerData(col, Qt.Horizontal))
+            action.setCheckable(True)
+            action.setChecked(not header.isSectionHidden(col))
+            
+            # Create a proper closure to toggle visibility
+            def make_toggle(column, act):
+                def toggle():
+                    header.setSectionHidden(column, not act.isChecked())
+                return toggle
+            
+            action.triggered.connect(make_toggle(col, action))
+            
+        menu.exec_(header.mapToGlobal(position))
+    
+    def startDrag(self, supportedActions):
+        """Start drag operation with track IDs"""
+        from PySide6.QtCore import QMimeData, QByteArray
+        from PySide6.QtGui import QDrag
+        import json
+        
+        track_ids = self.get_selected_track_ids()
+        if not track_ids:
+            return
+        
+        # Create mime data with track IDs
+        mime_data = QMimeData()
+        mime_data.setText(json.dumps(track_ids))
+        mime_data.setData("application/x-tonemix-tracks", QByteArray(json.dumps(track_ids).encode()))
+        
+        # Create drag
+        drag = QDrag(self)
+        drag.setMimeData(mime_data)
+        
+        # Execute drag
+        drag.exec_(Qt.CopyAction)
     
     def get_selected_track_ids(self) -> list:
         """Get list of selected track IDs"""
