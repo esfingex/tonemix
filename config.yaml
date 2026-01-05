@@ -1,0 +1,41 @@
+database:
+  host: localhost
+  port: 5432
+  name: tonemix
+  user: postgres
+  password: ${DB_PASSWORD}  # Set via environment variable
+
+audio:
+  sample_rate: 44100
+  waveform_points: 2000
+  supported_formats:
+    - flac
+    - aiff
+    - wav
+    - mp3
+    - m4a
+
+transcoding:
+  ffmpeg_path: /usr/bin/ffmpeg
+  output_format: aiff
+  bit_depth: 24
+  preserve_metadata: true
+
+ui:
+  theme: dark
+  window_size:
+    width: 1280
+    height: 720
+  min_window_size:
+    width: 1024
+    height: 600
+
+analysis:
+  key_profile: electronic  # Options: electronic, classical
+  energy_weights:
+    rms: 0.6
+    spectral_centroid: 0.4
+
+export:
+  rekordbox_xml_version: "1.0.0"
+  default_export_path: ~/Music/ToneMix/exports

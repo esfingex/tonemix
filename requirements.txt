@@ -1,0 +1,33 @@
+# Core Audio Processing
+essentia==2.1b6.dev1110
+librosa==0.10.1
+soundfile==0.12.1
+numpy==1.24.3
+
+# UI Framework
+PySide6==6.6.1
+PySide6-Addons==6.6.1
+PySide6-Essentials==6.6.1
+
+# Database
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.9
+
+# Metadata & Transcoding
+mutagen==1.47.0
+
+# Rekordbox Integration
+pyrekordbox==0.1.8
+
+# Utilities
+PyYAML==6.0.1
+python-dotenv==1.0.0
+
+# Testing
+pytest==7.4.3
+pytest-qt==4.2.0
+
+# Development
+black==23.12.1
+flake8==7.0.0
+mypy==1.8.0
