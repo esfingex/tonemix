@@ -39,7 +39,7 @@ class AudioAnalyzer:
     
     def __init__(self):
         self.audio_processor = AudioProcessor()
-        self.key_profile = config.analysis.get('key_profile', 'electronic')
+        self.key_profile = config.analysis.get('key_profile', 'edma')
         self.energy_weights = config.analysis.get('energy_weights', {'rms': 0.6, 'spectral_centroid': 0.4})
         
         if not ESSENTIA_AVAILABLE:

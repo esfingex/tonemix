@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import NullPool
 from contextlib import contextmanager
 from typing import Generator
+from pathlib import Path
 import logging
 
 from src.database.models import Base
@@ -26,47 +27,11 @@ class DatabaseManager:
             cls._instance = super().__new__(cls)
         return cls._instance
     
-    def __init__(self):
-        if self._engine is None:
-            self._initialize_engine()
     
-    def _initialize_engine(self):
-        """Initialize SQLAlchemy engine"""
-        db_config = config.database
-        
-        # Build connection string
-        connection_string = (
-            f"postgresql://{db_config['user']}:{db_config['password']}"
-            f"@{db_config['host']}:{db_config['port']}/{db_config['name']}"
-        )
-        
-        # Create engine
-        self._engine = create_engine(
-            connection_string,
-            echo=False,  # Set to True for SQL debugging
-            pool_pre_ping=True,  # Verify connections before using
-            pool_size=10,
-            max_overflow=20,
-        )
-        
-        """Initialize SQLAlchemy engine (primarily for explicit setup if needed)"""
-        if self._engine is None:
-            # This method will now delegate to the get_engine property for actual engine creation
-            # to ensure consistency with the lazy loading logic.
-            _ = self.get_engine # Accessing the property will initialize _engine if it's None
-            self._session_factory = sessionmaker(bind=self._engine)
-            
-            db_config = config.database
-            db_type = db_config.get('type', 'postgresql')
-            
-            if db_type == 'sqlite':
-                db_path = Path(__file__).parent.parent.parent / db_config.get('name', 'tonemix.db')
-                logger.info(f"Database engine initialized: SQLite at {db_path}")
-            else: # postgresql
-                logger.info(f"Database engine initialized: {db_config.get('host', 'localhost')}:{db_config.get('port', 5432)}/{db_config.get('name', 'tonemix')}")
-        elif self._session_factory is None:
-            # If engine exists but session_factory doesn't, create it
-            self._session_factory = sessionmaker(bind=self._engine)
+    def __init__(self):
+        # Engine is lazy-loaded via get_engine property
+        pass
+
 
     @property
     def get_engine(self):
@@ -134,7 +99,7 @@ class DatabaseManager:
     def create_all_tables(self):
         """Create all tables in the database"""
         try:
-            Base.metadata.create_all(self._engine)
+            Base.metadata.create_all(self.get_engine)
             logger.info("All database tables created successfully")
         except Exception as e:
             logger.error(f"Error creating tables: {e}")
@@ -143,7 +108,7 @@ class DatabaseManager:
     def drop_all_tables(self):
         """Drop all tables (use with caution!)"""
         try:
-            Base.metadata.drop_all(self._engine)
+            Base.metadata.drop_all(self.get_engine)
             logger.warning("All database tables dropped")
         except Exception as e:
             logger.error(f"Error dropping tables: {e}")

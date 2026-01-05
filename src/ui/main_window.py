@@ -262,6 +262,8 @@ class MainWindow(QMainWindow):
         try:
             # Get audio info
             audio_info = self.audio_processor.get_audio_info(file_path)
+            # Remove keys that aren't in the Track model
+            audio_info.pop('channels', None)
             
             # Create track data
             track_data = {

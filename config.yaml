@@ -33,7 +33,7 @@ ui:
     height: 600
 
 analysis:
-  key_profile: electronic  # Options: electronic, classical
+  key_profile: edma  # electronic, edma, temperley  # Options: electronic, classical
   energy_weights:
     rms: 0.6
     spectral_centroid: 0.4

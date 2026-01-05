@@ -38,9 +38,9 @@ def main():
     app.setOrganizationName("ToneMix")
     app.setApplicationVersion("0.1.0")
     
-    # Enable high DPI scaling
-    app.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-    app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    # High DPI scaling is enabled by default in Qt 6
+    # app.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    # app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     
     try:
         # Display configuration
