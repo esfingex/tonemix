@@ -42,50 +42,138 @@ ToneMix is an open-source music analysis tool inspired by Mixed In Key, designed
 
 ### Prerequisites
 
-- Python 3.10 or higher
-- PostgreSQL 12+
-- FFmpeg (for transcoding)
+Before installing ToneMix, ensure you have the following:
 
-### Setup
+#### Required
+
+- **Python 3.10+**: [Download Python](https://www.python.org/downloads/)
+- **PostgreSQL 12+**: Database for storing music library
+
+  ```bash
+  # Ubuntu/Debian
+  sudo apt update
+  sudo apt install postgresql postgresql-contrib
+  
+  # macOS
+  brew install postgresql
+  
+  # Start PostgreSQL service
+  sudo systemctl start postgresql  # Linux
+  brew services start postgresql   # macOS
+  ```
+
+- **FFmpeg**: Required for audio transcoding (FLAC → AIFF)
+
+  ```bash
+  # Ubuntu/Debian
+  sudo apt install ffmpeg
+  
+  # macOS
+  brew install ffmpeg
+  ```
+
+#### Optional (but recommended)
+
+- **Essentia**: For advanced key and BPM detection
+  - Without Essentia, ToneMix will use Librosa as fallback
+  - Installation can be done during setup
+
+### Quick Setup (Recommended)
+
+Use the automated setup script:
+
+```bash
+# Clone the repository
+git clone https://github.com/esfingex/tonemix.git
+cd tonemix
+
+# Run setup script (installs dependencies, creates venv)
+./setup.sh
+
+# Configure database (see below)
+
+# Run ToneMix
+./run.sh
+```
+
+### Manual Setup
+
+If you prefer manual installation:
 
 1. **Clone the repository**
 
-```bash
-git clone https://github.com/esfingex/tonemix.git
-cd tonemix
+   ```bash
+   git clone https://github.com/esfingex/tonemix.git
+   cd tonemix
+   ```
+
+2. **Create virtual environment**
+
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install Python dependencies**
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Create PostgreSQL database**
+
+   ```bash
+   # Switch to postgres user
+   sudo -u postgres psql
+   
+   # In PostgreSQL prompt:
+   CREATE DATABASE tonemix;
+   CREATE USER tonemix_user WITH PASSWORD 'your_password';
+   GRANT ALL PRIVILEGES ON DATABASE tonemix TO tonemix_user;
+   \q
+   ```
+
+5. **Configure environment**
+
+   ```bash
+   # Copy environment template
+   cp .env.example .env
+   
+   # Edit .env with your database credentials
+   nano .env
+   ```
+
+   Update these values in `.env`:
+
+   ```env
+   DB_PASSWORD=your_password
+   ```
+
+6. **Run ToneMix**
+
+   ```bash
+   python main.py
+   ```
+
+### Verifying Installation
+
+When you run ToneMix for the first time, you should see:
+
+```
+🎵 ToneMix Pro v0.1.0
+============================================================
+📋 Configuration:
+  Database: localhost:5432/tonemix
+  ✅ Essentia available
+  ✅ FFmpeg available
+✅ ToneMix Pro is ready!
 ```
 
-1. **Create virtual environment**
+If you see warnings about missing components:
 
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-1. **Install dependencies**
-
-```bash
-pip install -r requirements.txt
-```
-
-1. **Configure database**
-
-```bash
-# Create PostgreSQL database
-createdb tonemix
-
-# Copy environment template
-cp .env.example .env
-
-# Edit .env and set your database password
-nano .env
-```
-
-1. **Run ToneMix**
-
-```bash
-python main.py
-```
+- **Essentia not installed**: `pip install essentia` (in venv)
+- **FFmpeg not found**: Install using instructions above
+- **Database error**: Check PostgreSQL is running and credentials are correct
 
 ## 🎨 Screenshots
 
@@ -139,27 +227,32 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🗺️ Roadmap
 
-### Phase 1 (Current)
+### Phase 1 ✅ COMPLETED
 
 - [x] Project structure and architecture
-- [ ] Core audio analysis engine
-- [ ] Database models and repository
-- [ ] Basic UI with waveform visualization
-- [ ] Rekordbox XML export
+- [x] Core audio analysis engine (Essentia + Librosa)
+- [x] Database models and repository (PostgreSQL + SQLAlchemy)
+- [x] Complete UI with waveform visualization
+- [x] Rekordbox XML export
+- [x] Batch file analysis
+- [x] FLAC to AIFF transcoding
 
-### Phase 2
+### Phase 2 (In Progress)
 
-- [ ] Dual deck interface
+- [ ] Dual deck interface for mashup creation
 - [ ] Mashup tools and markers
 - [ ] Advanced filtering and search
-- [ ] Batch analysis
+- [ ] Playlist management
+- [ ] Keyboard shortcuts
+- [ ] Performance optimizations
 
-### Phase 3
+### Phase 3 (Planned)
 
 - [ ] Stems separation integration
 - [ ] Cloud sync capabilities
 - [ ] Mobile companion app
 - [ ] Plugin system for extensibility
+- [ ] VST/AU plugin support
 
 ## 💬 Support
 
