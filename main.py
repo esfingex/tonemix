@@ -14,6 +14,7 @@ from PySide6.QtCore import Qt
 
 from src.utils.config import config
 from src.database.connection import init_database
+from src.ui.main_window import MainWindow
 
 # Configure logging
 logging.basicConfig(
@@ -56,6 +57,15 @@ def main():
         else:
             print("  ⚠️  Database initialization failed")
             print("  Make sure PostgreSQL is running and credentials are correct in .env")
+            QMessageBox.critical(
+                None,
+                "Database Error",
+                "Failed to initialize database.\n\n"
+                "Please check:\n"
+                "1. PostgreSQL is running\n"
+                "2. Database credentials in .env are correct\n"
+                "3. Database 'tonemix' exists"
+            )
             return 1
         
         # Check components
@@ -67,6 +77,7 @@ def main():
             print("  ✅ Essentia available")
         except ImportError:
             print("  ⚠️  Essentia not installed (pip install essentia)")
+            print("     Key and BPM detection will use fallback methods")
         
         # Check FFmpeg
         import shutil
@@ -74,35 +85,25 @@ def main():
             print("  ✅ FFmpeg available")
         else:
             print("  ⚠️  FFmpeg not found (sudo apt install ffmpeg)")
+            print("     Transcoding will not be available")
         
         print("\n" + "=" * 60)
         print("✅ ToneMix Pro is ready!")
         print("=" * 60)
         
-        # TODO: Load and show main window
-        # from src.ui.main_window import MainWindow
-        # window = MainWindow()
-        # window.show()
-        # return app.exec()
+        # Load stylesheet
+        stylesheet_path = Path(__file__).parent / "src" / "ui" / "resources" / "styles.qss"
+        if stylesheet_path.exists():
+            with open(stylesheet_path, 'r') as f:
+                app.setStyleSheet(f.read())
+            print("\n🎨 Dark theme loaded")
         
-        print("\n⚠️  UI not yet implemented")
-        print("\n📦 Available modules:")
-        print("  ✅ Database layer (models, connection, repository)")
-        print("  ✅ Audio analyzer (key, BPM, energy detection)")
-        print("  ✅ Audio processor (loading, waveform generation)")
-        print("  ✅ Transcoder (FLAC to AIFF)")
-        print("  ✅ Rekordbox exporter (XML generation)")
-        print("  ⏳ UI components (coming soon)")
+        # Create and show main window
+        print("🚀 Launching UI...\n")
+        window = MainWindow()
+        window.show()
         
-        print("\n🚀 Next steps:")
-        print("  1. Implement main window UI")
-        print("  2. Create waveform widget")
-        print("  3. Build library table view")
-        print("  4. Add file import functionality")
-        
-        print("\n👋 Press Enter to exit...")
-        input()
-        return 0
+        return app.exec()
         
     except Exception as e:
         logger.error(f"Application error: {e}", exc_info=True)
@@ -112,4 +113,5 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
 
