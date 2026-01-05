@@ -1,5 +1,5 @@
 # Core Audio Processing
-essentia==2.1b6.dev1110
+essentia==2.1b6.dev1389
 librosa==0.10.1
 soundfile==0.12.1
 numpy==1.24.3

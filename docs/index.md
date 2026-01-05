@@ -225,6 +225,26 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Built with [Essentia](https://essentia.upf.edu/) for audio analysis
 - UI design influenced by professional DJ software aesthetics
 
+## 🔧 Troubleshooting
+
+### Common Installation Issues
+
+**1. Essentia Version Not Found**
+If you see an error like `No matching distribution found for essentia==...`:
+
+- Edit `requirements.txt` and change the version to just `essentia` (to get the latest) or check available versions on PyPI.
+- Alternatively, install slightly different version: `pip install essentia==2.1b6.dev1389`
+
+**2. Database Connection Failed**
+
+- Ensure PostgreSQL service is running: `sudo systemctl status postgresql`
+- Verify credentials in `.env` file match what you set up in PostgreSQL.
+
+**3. Audio Analysis Fails**
+
+- Ensure FFmpeg is installed: `ffmpeg -version`
+- Check log output for specific error messages.
+
 ## 🗺️ Roadmap
 
 ### Phase 1 ✅ COMPLETED

@@ -373,6 +373,24 @@ flake8 src/
 <li>Built with <a href="https://essentia.upf.edu/">Essentia</a> for audio analysis</li>
 <li>UI design influenced by professional DJ software aesthetics</li>
 </ul>
+<h2 id="troubleshooting">🔧 Troubleshooting</h2>
+<h3 id="common-installation-issues">Common Installation Issues</h3>
+<p><strong>1. Essentia Version Not Found</strong>
+If you see an error like <code>No matching distribution found for essentia==...</code>:</p>
+<ul>
+<li>Edit <code>requirements.txt</code> and change the version to just <code>essentia</code> (to get the latest) or check available versions on PyPI.</li>
+<li>Alternatively, install slightly different version: <code>pip install essentia==2.1b6.dev1389</code></li>
+</ul>
+<p><strong>2. Database Connection Failed</strong></p>
+<ul>
+<li>Ensure PostgreSQL service is running: <code>sudo systemctl status postgresql</code></li>
+<li>Verify credentials in <code>.env</code> file match what you set up in PostgreSQL.</li>
+</ul>
+<p><strong>3. Audio Analysis Fails</strong></p>
+<ul>
+<li>Ensure FFmpeg is installed: <code>ffmpeg -version</code></li>
+<li>Check log output for specific error messages.</li>
+</ul>
 <h2 id="roadmap">🗺️ Roadmap</h2>
 <h3 id="phase-1-completed">Phase 1 ✅ COMPLETED</h3>
 <ul>
