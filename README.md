@@ -47,21 +47,6 @@ Before installing ToneMix, ensure you have the following:
 #### Required
 
 - **Python 3.10+**: [Download Python](https://www.python.org/downloads/)
-- **PostgreSQL 12+**: Database for storing music library
-
-  ```bash
-  # Ubuntu/Debian
-  sudo apt update
-  sudo apt install postgresql postgresql-contrib
-  
-  # macOS
-  brew install postgresql
-  
-  # Start PostgreSQL service
-  sudo systemctl start postgresql  # Linux
-  brew services start postgresql   # macOS
-  ```
-
 - **FFmpeg**: Required for audio transcoding (FLAC → AIFF)
 
   ```bash
@@ -72,13 +57,12 @@ Before installing ToneMix, ensure you have the following:
   brew install ffmpeg
   ```
 
-#### Optional (but recommended)
+#### Optional
 
-- **Essentia**: For advanced key and BPM detection
-  - Without Essentia, ToneMix will use Librosa as fallback
-  - Installation can be done during setup
+- **Essentia**: For advanced analysis (pip install essentia)
+- **PostgreSQL**: Optional, ToneMix uses SQLite by default.
 
-### Quick Setup (Recommended)
+### Quick Setup
 
 Use the automated setup script:
 
@@ -87,10 +71,8 @@ Use the automated setup script:
 git clone https://github.com/esfingex/tonemix.git
 cd tonemix
 
-# Run setup script (installs dependencies, creates venv)
+# Run setup script
 ./setup.sh
-
-# Configure database (see below)
 
 # Run ToneMix
 ./run.sh

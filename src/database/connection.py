@@ -49,14 +49,60 @@ class DatabaseManager:
             max_overflow=20,
         )
         
-        # Create session factory
-        self._session_factory = sessionmaker(bind=self._engine)
-        
-        logger.info(f"Database engine initialized: {db_config['host']}:{db_config['port']}/{db_config['name']}")
-    
+        """Initialize SQLAlchemy engine (primarily for explicit setup if needed)"""
+        if self._engine is None:
+            # This method will now delegate to the get_engine property for actual engine creation
+            # to ensure consistency with the lazy loading logic.
+            _ = self.get_engine # Accessing the property will initialize _engine if it's None
+            self._session_factory = sessionmaker(bind=self._engine)
+            
+            db_config = config.database
+            db_type = db_config.get('type', 'postgresql')
+            
+            if db_type == 'sqlite':
+                db_path = Path(__file__).parent.parent.parent / db_config.get('name', 'tonemix.db')
+                logger.info(f"Database engine initialized: SQLite at {db_path}")
+            else: # postgresql
+                logger.info(f"Database engine initialized: {db_config.get('host', 'localhost')}:{db_config.get('port', 5432)}/{db_config.get('name', 'tonemix')}")
+        elif self._session_factory is None:
+            # If engine exists but session_factory doesn't, create it
+            self._session_factory = sessionmaker(bind=self._engine)
+
     @property
-    def engine(self):
-        """Get SQLAlchemy engine"""
+    def get_engine(self):
+        """Get SQLAlchemy engine, initializing it if not already done."""
+        if self._engine is None:
+            db_config = config.database
+            db_type = db_config.get('type', 'postgresql')
+            
+            if db_type == 'sqlite':
+                db_path = Path(__file__).parent.parent.parent / db_config.get('name', 'tonemix.db')
+                url = f"sqlite:///{db_path}"
+                self._engine = create_engine(url, echo=False)
+                logger.info(f"SQLite engine created at {db_path}")
+            else: # Default to PostgreSQL
+                user = db_config.get('user', 'postgres')
+                password = db_config.get('password', '')
+                host = db_config.get('host', 'localhost')
+                port = db_config.get('port', 5432)
+                name = db_config.get('name', 'tonemix')
+                
+                url = (
+                    f"postgresql://{user}:{password}"
+                    f"@{host}:{port}/{name}"
+                )
+                self._engine = create_engine(
+                    url,
+                    echo=False,  # Set to True for SQL debugging
+                    pool_pre_ping=True,  # Verify connections before using
+                    pool_size=10,
+                    max_overflow=20,
+                )
+                logger.info(f"PostgreSQL engine created for {host}:{port}/{name}")
+            
+            # Initialize session factory once engine is created
+            self._session_factory = sessionmaker(bind=self._engine)
+                
         return self._engine
     
     @contextmanager
@@ -68,6 +114,12 @@ class DatabaseManager:
             with db_manager.get_session() as session:
                 track = session.query(Track).first()
         """
+        # Ensure engine and session_factory are initialized before getting a session
+        if self._engine is None:
+            _ = self.get_engine # Accessing the property will initialize _engine and _session_factory
+        elif self._session_factory is None:
+            self._session_factory = sessionmaker(bind=self._engine)
+
         session = self._session_factory()
         try:
             yield session

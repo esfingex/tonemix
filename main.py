@@ -52,19 +52,19 @@ def main():
         
         # Initialize database
         print("\n🗄️  Initializing database...")
+        db_type = config.database.get('type', 'postgresql')
+        print(f"  Using database engine: {db_type.upper()}")
+        
         if init_database():
             print("  ✅ Database initialized successfully")
         else:
             print("  ⚠️  Database initialization failed")
-            print("  Make sure PostgreSQL is running and credentials are correct in .env")
+            if db_type == 'postgresql':
+                print("  Make sure PostgreSQL is running and credentials are correct in .env")
             QMessageBox.critical(
                 None,
                 "Database Error",
-                "Failed to initialize database.\n\n"
-                "Please check:\n"
-                "1. PostgreSQL is running\n"
-                "2. Database credentials in .env are correct\n"
-                "3. Database 'tonemix' exists"
+                "Failed to initialize database."
             )
             return 1
         

@@ -1,4 +1,6 @@
 database:
+  type: sqlite
+  # PostgreSQL config (optional, processed if type is postgresql)
   host: localhost
   port: 5432
   name: tonemix

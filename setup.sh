@@ -23,9 +23,9 @@ fi
 echo -e "${YELLOW}Activating virtual environment...${NC}"
 source venv/bin/activate
 
-# Upgrade pip
-echo -e "${YELLOW}Upgrading pip...${NC}"
-pip install --upgrade pip
+# Upgrade pip and build tools
+echo "Upgrading pip and build tools..."
+pip install --upgrade pip setuptools wheel
 
 # Install dependencies
 echo -e "${YELLOW}Installing dependencies...${NC}"
@@ -40,14 +40,6 @@ if [ ! -f ".env" ]; then
     echo -e "${RED}⚠️  Please edit .env file with your database credentials${NC}"
 fi
 
-# Check PostgreSQL
-echo -e "${YELLOW}Checking PostgreSQL...${NC}"
-if command -v psql &> /dev/null; then
-    echo -e "${GREEN}✓ PostgreSQL is installed${NC}"
-else
-    echo -e "${RED}⚠️  PostgreSQL not found. Install with: sudo apt install postgresql${NC}"
-fi
-
 # Check FFmpeg
 echo -e "${YELLOW}Checking FFmpeg...${NC}"
 if command -v ffmpeg &> /dev/null; then
@@ -57,7 +49,6 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}================================${NC}"
 echo -e "${GREEN}Setup complete!${NC}"
 echo -e "${GREEN}================================${NC}"
 echo ""

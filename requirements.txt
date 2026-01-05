@@ -2,7 +2,7 @@
 essentia==2.1b6.dev1389
 librosa==0.10.1
 soundfile==0.12.1
-numpy==1.24.3
+numpy==1.26.4
 
 # UI Framework
 PySide6==6.6.1
@@ -10,8 +10,8 @@ PySide6-Addons==6.6.1
 PySide6-Essentials==6.6.1
 
 # Database
-SQLAlchemy==2.0.23
-psycopg2-binary==2.9.9
+SQLAlchemy==1.4.52
+# psycopg2-binary==2.9.9  # Optional for PostgreSQL support
 
 # Metadata & Transcoding
 mutagen==1.47.0
