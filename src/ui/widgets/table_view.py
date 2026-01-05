@@ -177,4 +177,10 @@ class LibraryTableView(QTableView):
         # Calculate pixmap for drag visual
         # drag.setPixmap(...) 
         
-        drag.exec_(actions)
+        # Execute drag
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Starting drag with tracks: {track_ids}")
+        
+        result = drag.exec_(Qt.CopyAction)
+        logger.info(f"Drag finished with result: {result}")

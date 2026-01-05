@@ -609,18 +609,10 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"Loaded: {track.title}")
     
     def _on_selection_changed(self, selected, deselected):
-        """Handle selection change - load waveform for selected track"""
-        indexes = selected.indexes()
-        if not indexes:
-            return
-        
-        # Get first selected row
-        row = indexes[0].row()
-        track = self.table_model.get_track(row)
-        
-        if track:
-            # For now, just load to A
-            self._load_to_deck(self.deck_a)
+        """Handle selection change"""
+        # We don't want to auto-load on selection as it interferes with drag and drop
+        # and is bad UX. Loading should be explicit (drag or double click).
+        pass
 
     def _load_track(self, track_id: int, deck_id: str):
         """Load track by ID into specific deck"""

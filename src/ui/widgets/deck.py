@@ -32,8 +32,10 @@ class DeckWidget(QWidget):
         if event.mimeData().hasFormat("application/x-tonemix-track-ids"):
             event.acceptProposedAction()
             self.setStyleSheet("border: 2px solid #00E5FF;") # Highlight
+            logger.info("Drag enter ACCEPTED")
         else:
             event.ignore()
+            logger.info(f"Drag enter IGNORED. Formats: {event.mimeData().formats()}")
             
     def dragLeaveEvent(self, event):
         """Handle drag leave"""
@@ -42,20 +44,20 @@ class DeckWidget(QWidget):
     def dropEvent(self, event):
         """Handle drop event"""
         self.setStyleSheet("") # Clear highlight
+        logger.info("Drop event received")
         
         if event.mimeData().hasFormat("application/x-tonemix-track-ids"):
             import json
             data = event.mimeData().data("application/x-tonemix-track-ids").data()
-            track_ids = json.loads(data)
-            
-            if track_ids:
-                # Load first track
-                track_id = track_ids[0]
+            try:
+                track_ids = json.loads(data)
+                logger.info(f"Dropped IDs: {track_ids}")
                 
-                # Signal parent or handle loading directly?
-                # Deck doesn't have reference to repository easily...
-                # Ideally emit signal "track_dropped" and let MainWindow handle loading
-                self.track_dropped.emit(track_id)
+                if track_ids:
+                    track_id = track_ids[0]
+                    self.track_dropped.emit(track_id)
+            except Exception as e:
+                logger.error(f"Error parsing drop data: {e}")
                 
             event.acceptProposedAction()
         
@@ -76,7 +78,7 @@ class DeckWidget(QWidget):
         )
         top_bar.addWidget(self.deck_label)
         
-        # Track Title (Centered or Left)
+        # Track Title
         self.title_label = QLabel("No Track Loaded")
         self.title_label.setStyleSheet("font-size: 14px; font-weight: bold; color: white;")
         self.title_label.setAlignment(Qt.AlignCenter)
@@ -86,25 +88,33 @@ class DeckWidget(QWidget):
         
         # 2. Main Visual Area: Artwork (Left) + Waveform (Right)
         visuals_layout = QHBoxLayout()
-        visuals_layout.setContentsMargins(0, 0, 0, 0)
-        visuals_layout.setSpacing(0)
+        visuals_layout.setContentsMargins(10, 10, 10, 10) # Add padding
+        visuals_layout.setSpacing(15)
         
-        # Artwork
+        # Artwork - BIGGER
         self.artwork_label = QLabel()
-        self.artwork_label.setFixedSize(80, 80) # Slightly larger for better visibility
-        self.artwork_label.setStyleSheet("background-color: #222; border-right: 1px solid #444;")
+        self.artwork_label.setFixedSize(140, 140) # Increased from 80
+        self.artwork_label.setStyleSheet("background-color: #222; border: 1px solid #444;")
         self.artwork_label.setScaledContents(True)
         self.artwork_label.setAlignment(Qt.AlignCenter)
         self.artwork_label.setText("🎵")
         visuals_layout.addWidget(self.artwork_label)
         
-        # Waveform
-        self.waveform = WaveformWidget()
-        self.waveform.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.waveform.setMinimumHeight(80) # Match artwork height approx
-        visuals_layout.addWidget(self.waveform)
+        # Waveform Container (for centering)
+        wave_container = QVBoxLayout()
+        wave_container.addStretch() # Space above
         
-        layout.addLayout(visuals_layout, 1) # Expand visuals
+        # Waveform - SMALLER HEIGHT
+        self.waveform = WaveformWidget()
+        self.waveform.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed) # Fixed height
+        self.waveform.setFixedHeight(80) # Smaller fixed height
+        wave_container.addWidget(self.waveform)
+        
+        wave_container.addStretch() # Space below
+        
+        visuals_layout.addLayout(wave_container, 1) # Expand visuals
+        
+        layout.addLayout(visuals_layout, 1)
         
         # 3. Player Controls (Bottom)
         self.player = AudioPlayer()

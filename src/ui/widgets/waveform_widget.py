@@ -14,7 +14,7 @@ class WaveformWidget(QWidget):
     """Custom widget for waveform visualization"""
     
     # Signals
-    position_clicked = Signal(float)  # Emits position (0.0 - 1.0)
+    seek_requested = Signal(float)  # Emits position (0.0 - 1.0)
     
     def __init__(self, parent=None):
         super().__init__(parent)
