@@ -110,6 +110,10 @@ class Sidebar(QWidget):
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._show_context_menu)
         
+        # Connect expansion/collapse for icon updates
+        self.tree.itemExpanded.connect(lambda i: self._update_icon_state(i, True))
+        self.tree.itemCollapsed.connect(lambda i: self._update_icon_state(i, False))
+        
         layout.addWidget(self.tree)
         
         # Initialize items
@@ -117,6 +121,17 @@ class Sidebar(QWidget):
         
         # Load devices
         self.refresh_devices()
+
+    def _update_icon_state(self, item, expanded):
+        """Update icon based on expansion state"""
+        role = item.data(0, Qt.UserRole)
+        style_id = None
+        
+        if role in ["root_library", "root_playlists"]:
+            style_id = QStyle.SP_DirOpenIcon if expanded else QStyle.SP_DirIcon
+            
+        if style_id:
+            item.setIcon(0, self._get_mono_icon(style_id))
         
     
     def _get_mono_icon(self, standard_id):

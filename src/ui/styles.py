@@ -73,9 +73,11 @@ def get_main_stylesheet():
         border: none;
     }
     QTreeWidget::branch:has-children:!has-siblings:closed,
-    QTreeWidget::branch:closed:has-children:has-siblings {
+    QTreeWidget::branch:closed:has-children:has-siblings,
+    QTreeWidget::branch:open:has-children:!has-siblings,
+    QTreeWidget::branch:open:has-children:has-siblings {
         border-image: none;
-        image: none; /* Let system draw arrow, or specify one if needed. System usually fine if background is transparent */
+        image: none; /* Remove native arrow. Use folder icons or indentation. */
     }
     QTreeWidget::item:hover {
         background-color: #333642;
