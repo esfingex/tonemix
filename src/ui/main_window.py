@@ -672,19 +672,6 @@ class MainWindow(QMainWindow):
             msg += f" Added {added_to_playlist_count} to playlist."
             
         self.status_bar.showMessage(msg)
-        
-        # Trigger analysis for NEW tracks only to avoid re-analyzing
-        # Or analyze all if requested? Let's analyze new ones.
-        # Ideally we analyze all imported_ids that lack analysis.
-        # efficient approach:
-        to_analyze = []
-        for tid in imported_ids:
-             t = self.repository.get_by_id(tid)
-             if t and not t.bpm: # Assume if BPM missing, needs analysis
-                 to_analyze.append(t.file_path)
-        
-        if to_analyze:
-             self._start_analysis(to_analyze)
 
     def _import_files(self):
         """Import audio files via dialog"""
