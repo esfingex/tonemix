@@ -62,9 +62,9 @@ def get_main_stylesheet():
         padding: 4px;
     }
     QTreeWidget::item {
-        padding: 8px;
-        margin: 1px;
-        border: none; /* No borders on items */
+        padding: 4px 8px; /* Reduced vertical padding */
+        margin: 2px 6px;  /* Increased side margin to shrink the hover box */
+        border: none; 
         border-radius: 4px;
         color: #e0e0e0;
     }
