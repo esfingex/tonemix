@@ -40,6 +40,9 @@ class Track(Base):
     # Waveform data (stored as binary for fast loading)
     waveform_data = Column(LargeBinary)  # Downsampled waveform (~2000 points)
     
+    # Album artwork (stored as PNG thumbnail 64x64)
+    artwork_thumbnail = Column(LargeBinary)  # PNG image bytes
+    
     # Transcoding status
     transcoded_path = Column(String(512))  # Path to AIFF if transcoded
     is_transcoded = Column(Boolean, default=False)

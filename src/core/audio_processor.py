@@ -141,6 +141,76 @@ class AudioProcessor:
         except Exception as e:
             logger.error(f"Error downsampling waveform: {e}")
             return np.abs(audio[:target_points])
+
+    def extract_artwork(self, file_path: str) -> Optional[bytes]:
+        """
+        Extract and resize album artwork to 64x64 thumbnail
+        
+        Args:
+            file_path: Path to audio file
+            
+        Returns:
+            Bytes of PNG image or None
+        """
+        try:
+            import mutagen
+            from mutagen import File
+            from PIL import Image
+            import io
+            
+            # Load file with mutagen
+            try:
+                audio = File(file_path)
+            except Exception:
+                return None
+                
+            if not audio:
+                return None
+            
+            # Get artwork data based on format
+            artwork_data = None
+            
+            # FLAC
+            if hasattr(audio, 'pictures') and audio.pictures:
+                artwork_data = audio.pictures[0].data
+                
+            # ID3 (MP3, AIFF)
+            elif hasattr(audio, 'tags') and audio.tags:
+                for tag in audio.tags.values():
+                    if tag.__class__.__name__ == 'APIC':
+                        artwork_data = tag.data
+                        break
+                    # Sometimes APIC is accessed by key
+                    if hasattr(tag, 'data') and 'APIC' in str(type(tag)):
+                         artwork_data = tag.data
+                         break
+            
+            if not artwork_data:
+                return None
+            
+            # Resize image
+            try:
+                img = Image.open(io.BytesIO(artwork_data))
+                
+                # Convert to RGB (handle RGBA/P modes)
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                # Create thumbnail
+                img.thumbnail((64, 64), Image.LANCZOS)
+                
+                # Save as PNG
+                output = io.BytesIO()
+                img.save(output, format='PNG', optimize=True)
+                return output.getvalue()
+                
+            except Exception as e:
+                logger.warning(f"Error resizing artwork: {e}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error extracting artwork from {file_path}: {e}")
+            return None
     
     def generate_spectral_waveform(self, audio: np.ndarray, sample_rate: int, target_points: int = None) -> dict:
         """

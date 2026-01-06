@@ -12,6 +12,35 @@ from src.utils.camelot import get_key_color
 logger = logging.getLogger(__name__)
 
 
+class ArtworkDelegate(QStyledItemDelegate):
+    """Custom delegate for rendering album artwork thumbnails"""
+    
+    def paint(self, painter, option, index):
+        """Paint artwork"""
+        artwork_data = index.data(Qt.UserRole + 2) # Artwork data role
+        
+        if artwork_data:
+            pixmap = QPixmap()
+            pixmap.loadFromData(artwork_data)
+        else:
+            # Placeholder or empty
+            return
+            
+        # Draw image
+        if not pixmap.isNull():
+            # Center vertically
+            size = min(option.rect.height() - 4, 64)
+            x = option.rect.x() + 2
+            y = option.rect.y() + (option.rect.height() - size) // 2
+            
+            target_rect = QRect(x, y, size, size)
+            painter.drawPixmap(target_rect, pixmap.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+    def sizeHint(self, option, index):
+        """Return size hint"""
+        return QSize(70, 70)  # 64px image + padding
+
+
 class KeyDelegate(QStyledItemDelegate):
     """Custom delegate for rendering Camelot keys with color"""
     
@@ -149,14 +178,19 @@ class LibraryTableView(QTableView):
         self.doubleClicked.connect(self._on_double_click)
         
         # Custom delegates
+        self.artwork_delegate = ArtworkDelegate(self)
         self.key_delegate = KeyDelegate(self)
         self.rating_delegate = RatingDelegate(self)
         self.rating_delegate.clicked.connect(self._on_rating_clicked)
     
-    def set_delegates(self, key_column: int, rating_column: int):
+    def set_delegates(self, artwork_column: int, key_column: int, rating_column: int):
         """Set custom delegates for columns"""
+        self.setItemDelegateForColumn(artwork_column, self.artwork_delegate)
         self.setItemDelegateForColumn(key_column, self.key_delegate)
         self.setItemDelegateForColumn(rating_column, self.rating_delegate)
+        
+        # Set fixed width for artwork column
+        self.setColumnWidth(artwork_column, 70)
     
     def mousePressEvent(self, event):
         """Handle mouse press for drag init"""

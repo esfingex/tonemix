@@ -324,6 +324,7 @@ class MainWindow(QMainWindow):
         
         # Set custom delegates
         self.table_view.set_delegates(
+            artwork_column=TrackTableModel.COL_ARTWORK,
             key_column=TrackTableModel.COL_KEY,
             rating_column=TrackTableModel.COL_RATING
         )
@@ -653,6 +654,11 @@ class MainWindow(QMainWindow):
                         'artist': 'Unknown Artist',
                         **audio_info
                     }
+                    
+                    # Extract artwork
+                    artwork = self.audio_processor.extract_artwork(file_path)
+                    if artwork:
+                        track_data['artwork_thumbnail'] = artwork
                     
                     # Filter keys
                     track_data = {k: v for k, v in track_data.items() if k in valid_keys}

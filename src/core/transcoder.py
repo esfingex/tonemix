@@ -5,8 +5,10 @@ import subprocess
 import logging
 from pathlib import Path
 from typing import Optional
-from mutagen.id3 import ID3, TKEY
+from mutagen import File
+from mutagen.id3 import ID3, TKEY, TIT2, TPE1, TALB, TDRC, APIC
 from mutagen.aiff import AIFF
+from mutagen.wave import WAVE
 
 from src.utils.config import config
 
@@ -74,6 +76,11 @@ class AudioTranscoder:
             )
             
             logger.info(f"Transcoding complete: {output_path}")
+            
+            # Post-process: preserve artwork and tags if target is AIFF/WAV
+            if self.preserve_metadata and format in ['aiff', 'wav']:
+                self.copy_metadata_and_artwork(input_path, output_path)
+            
             return output_path
             
         except subprocess.CalledProcessError as e:
@@ -143,3 +150,61 @@ class AudioTranscoder:
                 logger.error(f"Error in batch transcoding for {input_path}: {e}")
         
         return results
+
+    def copy_metadata_and_artwork(self, source_path: str, dest_path: str) -> bool:
+        """
+        Copy tags and artwork from source to destination
+        Uses Mutagen because FFmpeg often fails with AIFF artwork
+        """
+        try:
+            source = File(source_path)
+            dest = File(dest_path)
+            
+            if not source or not dest:
+                return False
+                
+            # Ensure dest has tags
+            if dest.tags is None:
+                dest.add_tags()
+                
+            # Copy basic tags
+            tag_map = {
+                'title': TIT2,
+                'artist': TPE1,
+                'album': TALB,
+                'date': TDRC
+            }
+            
+            for key, frame_class in tag_map.items():
+                if key in source:
+                    # Some formats return list
+                    val = source[key]
+                    if isinstance(val, list):
+                        val = val[0]
+                    dest.tags.add(frame_class(encoding=3, text=str(val)))
+            
+            # Copy artwork
+            # FLAC
+            if hasattr(source, 'pictures') and source.pictures:
+                pic = source.pictures[0]
+                dest.tags.add(APIC(
+                    encoding=3,
+                    mime=pic.mime,
+                    type=3, # 3 is cover front
+                    desc=u'Cover',
+                    data=pic.data
+                ))
+            # Parameters for MP3/ID3 source
+            elif hasattr(source, 'tags'):
+                for tag in source.tags.values():
+                    if tag.__class__.__name__ == 'APIC':
+                        dest.tags.add(tag)
+                        break
+            
+            dest.save()
+            logger.info(f"Metadata copied to {dest_path}")
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Error copying metadata: {e}")
+            return False

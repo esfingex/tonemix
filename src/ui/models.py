@@ -14,19 +14,20 @@ class TrackTableModel(QAbstractTableModel):
     """Table model for displaying tracks"""
     
     # Column indices
-    COL_ID = 0
-    COL_TITLE = 1
-    COL_ARTIST = 2
-    COL_ALBUM = 3
-    COL_KEY = 4
-    COL_BPM = 5
-    COL_ENERGY = 6
-    COL_DURATION = 7
-    COL_RATING = 8
-    COL_PATH = 9
+    COL_ARTWORK = 0  # New column
+    COL_ID = 1
+    COL_TITLE = 2
+    COL_ARTIST = 3
+    COL_ALBUM = 4
+    COL_KEY = 5
+    COL_BPM = 6
+    COL_ENERGY = 7
+    COL_DURATION = 8
+    COL_RATING = 9
+    COL_PATH = 10
     
     HEADERS = [
-        "ID", "Title", "Artist", "Album", "Key", 
+        "Art", "ID", "Title", "Artist", "Album", "Key", 
         "BPM", "Energy", "Duration", "Rating", "Path"
     ]
     
@@ -57,7 +58,13 @@ class TrackTableModel(QAbstractTableModel):
         track = self._tracks[index.row()]
         col = index.column()
         
+        if role == Qt.UserRole + 2:  # Artwork Role
+            if col == self.COL_ARTWORK:
+                return track.artwork_thumbnail
+        
         if role == Qt.DisplayRole:
+            if col == self.COL_ARTWORK:
+                return ""  # Drawn by delegate
             if col == self.COL_ID:
                 return track.id
             elif col == self.COL_TITLE:
