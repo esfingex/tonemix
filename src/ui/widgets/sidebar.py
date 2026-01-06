@@ -95,7 +95,7 @@ class Sidebar(QWidget):
         # Navigation Tree
         self.tree = SidebarTree()
         self.tree.setHeaderHidden(True)
-        self.tree.setIndentation(20)
+        self.tree.setIndentation(12) # Reduced for minimalist look
         self.tree.setUniformRowHeights(True)
         
         # Forward drop signal
@@ -110,9 +110,9 @@ class Sidebar(QWidget):
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._show_context_menu)
         
-        # Connect expansion/collapse for icon updates
-        self.tree.itemExpanded.connect(lambda i: self._update_icon_state(i, True))
-        self.tree.itemCollapsed.connect(lambda i: self._update_icon_state(i, False))
+        # Connect expansion/collapse for icon updates - REMOVED for minimalist no-icon mode
+        # self.tree.itemExpanded.connect(lambda i: self._update_icon_state(i, True))
+        # self.tree.itemCollapsed.connect(lambda i: self._update_icon_state(i, False))
         
         layout.addWidget(self.tree)
         
@@ -147,37 +147,40 @@ class Sidebar(QWidget):
 
     def _init_items(self):
         """Initialize tree items"""
-        # Get standard icons (Monochrome)
-        dir_icon = self._get_mono_icon(QStyle.SP_DirIcon)
-        media_icon = self._get_mono_icon(QStyle.SP_MediaPlay)
-        drive_icon = self._get_mono_icon(QStyle.SP_DriveHDIcon)
-
+        # Minimalist Approach: No Icons, just clean text
+        
         # Library Root
         self.library_root = QTreeWidgetItem(self.tree)
-        self.library_root.setText(0, "Library")
-        self.library_root.setIcon(0, dir_icon)
+        self.library_root.setText(0, "LIBRARY")
+        # self.library_root.setIcon(0, dir_icon) # Removed
         self.library_root.setExpanded(True)
         self.library_root.setData(0, Qt.UserRole, "root_library")
+        # Make root items bold/distinct via font if possible, or just caps
+        font = self.library_root.font(0)
+        font.setBold(True)
+        self.library_root.setFont(0, font)
         
         # All Tracks (always visible)
         self.all_tracks_item = QTreeWidgetItem(self.library_root)
         self.all_tracks_item.setText(0, "All Tracks")
-        self.all_tracks_item.setIcon(0, media_icon)
+        # self.all_tracks_item.setIcon(0, media_icon) # Removed
         self.all_tracks_item.setData(0, Qt.UserRole, "all_tracks")
         
         # Playlists Root
         self.playlists_root = QTreeWidgetItem(self.tree)
-        self.playlists_root.setText(0, "Playlists")
-        self.playlists_root.setIcon(0, dir_icon)
+        self.playlists_root.setText(0, "PLAYLISTS")
+        # self.playlists_root.setIcon(0, dir_icon) # Removed
         self.playlists_root.setExpanded(True)
         self.playlists_root.setData(0, Qt.UserRole, "root_playlists")
+        self.playlists_root.setFont(0, font)
         
         # Devices Root
         self.devices_root = QTreeWidgetItem(self.tree)
-        self.devices_root.setText(0, "Devices")
-        self.devices_root.setIcon(0, drive_icon)
+        self.devices_root.setText(0, "DEVICES")
+        # self.devices_root.setIcon(0, drive_icon) # Removed
         self.devices_root.setExpanded(True)
         self.devices_root.setData(0, Qt.UserRole, "root_devices")
+        self.devices_root.setFont(0, font)
     
     def refresh_devices(self):
         """Scan and list mounted devices"""
