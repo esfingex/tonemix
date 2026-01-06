@@ -178,6 +178,11 @@ class MainWindow(QMainWindow):
         # Load playlists
         self._load_playlists()
         
+        # Select "All Tracks" by default
+        if hasattr(self.sidebar, 'all_tracks_item'):
+            self.sidebar.tree.setCurrentItem(self.sidebar.all_tracks_item)
+            self._on_sidebar_item_selected("all_tracks", self.sidebar.all_tracks_item)
+        
         # Restore settings
         self._restore_settings()
         
@@ -360,11 +365,21 @@ class MainWindow(QMainWindow):
             else:
                 logger.warning("Playlist has no ID")
                 self._current_playlist_id = None
+        elif item_type == "all_tracks":
+            # Show all tracks from library
+            self._current_playlist_id = None
+            self._load_tracks()
+            self.status_bar.showMessage("Showing all tracks")
         elif item_type == "root_playlists":
             # Clear table when clicking on Playlists root
             self._current_playlist_id = None
             self.table_model.set_tracks([])
             self.status_bar.showMessage("Select a playlist to view tracks")
+        elif item_type == "root_library":
+            # Show all tracks when clicking Library root
+            self._current_playlist_id = None
+            self._load_tracks()
+            self.status_bar.showMessage("Showing all tracks")
         elif item_type == "root_devices":
             # Select root devices
             self._current_playlist_id = None

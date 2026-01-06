@@ -119,6 +119,17 @@ class Sidebar(QWidget):
         
     def _init_items(self):
         """Initialize tree items"""
+        # Library Root
+        self.library_root = QTreeWidgetItem(self.tree)
+        self.library_root.setText(0, "Library")
+        self.library_root.setExpanded(True)
+        self.library_root.setData(0, Qt.UserRole, "root_library")
+        
+        # All Tracks (always visible)
+        self.all_tracks_item = QTreeWidgetItem(self.library_root)
+        self.all_tracks_item.setText(0, "📚 All Tracks")
+        self.all_tracks_item.setData(0, Qt.UserRole, "all_tracks")
+        
         # Playlists Root
         self.playlists_root = QTreeWidgetItem(self.tree)
         self.playlists_root.setText(0, "Playlists")
