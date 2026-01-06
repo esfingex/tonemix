@@ -199,9 +199,14 @@ class AudioProcessor:
                 # Create thumbnail
                 img.thumbnail((128, 128), Image.LANCZOS)
                 
+                # Create a fresh image to strip all metadata/ICC profiles
+                # This prevents "qt.gui.icc: fromIccProfile: failed minimal tag size sanity"
+                clean_img = Image.new('RGB', img.size)
+                clean_img.paste(img, (0, 0))
+                
                 # Save as PNG
                 output = io.BytesIO()
-                img.save(output, format='PNG', optimize=True)
+                clean_img.save(output, format='PNG', optimize=True)
                 return output.getvalue()
                 
             except Exception as e:
