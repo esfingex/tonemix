@@ -75,12 +75,12 @@ class AudioTranscoder:
             logger.info(f"Transcoding {input_path} to {output_path} ({format})")
             
             # Run FFmpeg
-            # Using DEVNULL for stdout to avoid buffer issues, capture stderr for errors
+            # Using DEVNULL for all IO to prevent blocking/buffer issues
             result = subprocess.run(
                 cmd,
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-                text=True,
+                stderr=subprocess.DEVNULL, # Ignore warnings to prevent deadlock
                 check=True
             )
             
