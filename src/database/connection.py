@@ -3,7 +3,6 @@ Database connection manager
 """
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import NullPool
 from contextlib import contextmanager
 from typing import Generator
 from pathlib import Path
@@ -37,41 +36,21 @@ class DatabaseManager:
     def get_engine(self):
         """Get SQLAlchemy engine, initializing it if not already done."""
         if self._engine is None:
-            db_config = config.database
-            db_type = db_config.get('type', 'postgresql')
+            from sqlalchemy import event
             
-            if db_type == 'sqlite':
-                db_path = Path(__file__).parent.parent.parent / db_config.get('name', 'tonemix.db')
-                url = f"sqlite:///{db_path}"
-                self._engine = create_engine(url, echo=False)
+            db_config = config.database
+            db_path = Path(__file__).parent.parent.parent / db_config.get('name', 'tonemix.db')
+            url = f"sqlite:///{db_path}"
+            self._engine = create_engine(url, echo=False)
+            
+            @event.listens_for(self._engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys=ON")
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.close()
                 
-                @event.listens_for(self._engine, "connect")
-                def set_sqlite_pragma(dbapi_connection, connection_record):
-                    cursor = dbapi_connection.cursor()
-                    cursor.execute("PRAGMA foreign_keys=ON")
-                    cursor.execute("PRAGMA journal_mode=WAL")
-                    cursor.close()
-                    
-                logger.info(f"SQLite engine created at {db_path} (FK support enabled)")
-            else: # Default to PostgreSQL
-                user = db_config.get('user', 'postgres')
-                password = db_config.get('password', '')
-                host = db_config.get('host', 'localhost')
-                port = db_config.get('port', 5432)
-                name = db_config.get('name', 'tonemix')
-                
-                url = (
-                    f"postgresql://{user}:{password}"
-                    f"@{host}:{port}/{name}"
-                )
-                self._engine = create_engine(
-                    url,
-                    echo=False,  # Set to True for SQL debugging
-                    pool_pre_ping=True,  # Verify connections before using
-                    pool_size=10,
-                    max_overflow=20,
-                )
-                logger.info(f"PostgreSQL engine created for {host}:{port}/{name}")
+            logger.info(f"SQLite engine created at {db_path} (FK + WAL enabled)")
             
             # Initialize session factory once engine is created
             self._session_factory = sessionmaker(bind=self._engine, expire_on_commit=False)

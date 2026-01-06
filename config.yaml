@@ -1,11 +1,5 @@
 database:
-  type: sqlite
-  # PostgreSQL config (optional, processed if type is postgresql)
-  host: localhost
-  port: 5432
-  name: tonemix
-  user: postgres
-  password: ${DB_PASSWORD}  # Set via environment variable
+  name: tonemix.db  # SQLite database file
 
 audio:
   sample_rate: 44100

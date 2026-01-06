@@ -8,6 +8,7 @@ import logging
 import psutil
 from src.ui.utils.icons import get_icon
 from src.database.repository import PlaylistRepository
+from src.utils.security import validate_playlist_name
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,7 @@ class Sidebar(QWidget):
     item_selected = Signal(str, object) # type, item
     tracks_dropped = Signal(int, list) # playlist_id, track_ids
     add_tracks_requested = Signal(int) # playlist_id
+    transcode_playlist_requested = Signal(int, str) # playlist_id, format
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -199,6 +201,17 @@ class Sidebar(QWidget):
             add_tracks_action = menu.addAction("➕ Add Tracks from Files...")
             add_tracks_action.triggered.connect(lambda: self.add_tracks_requested.emit(playlist_id))
             
+            # Transcode submenu
+            transcode_menu = menu.addMenu("🎵 Transcode Playlist to...")
+            transcode_aiff = transcode_menu.addAction("AIFF (24-bit)")
+            transcode_aiff.triggered.connect(lambda: self.transcode_playlist_requested.emit(playlist_id, 'aiff'))
+            transcode_wav = transcode_menu.addAction("WAV (24-bit)")
+            transcode_wav.triggered.connect(lambda: self.transcode_playlist_requested.emit(playlist_id, 'wav'))
+            transcode_mp3 = transcode_menu.addAction("MP3 (320kbps)")
+            transcode_mp3.triggered.connect(lambda: self.transcode_playlist_requested.emit(playlist_id, 'mp3'))
+            transcode_flac = transcode_menu.addAction("FLAC")
+            transcode_flac.triggered.connect(lambda: self.transcode_playlist_requested.emit(playlist_id, 'flac'))
+            
         if not menu.isEmpty():
             menu.exec_(self.tree.viewport().mapToGlobal(position))
             
@@ -241,14 +254,20 @@ class Sidebar(QWidget):
         """Show create playlist dialog"""
         name, ok = QInputDialog.getText(self, "New Playlist", "Playlist Name:")
         if ok and name:
-            # Create in DB
-            from src.database.repository import PlaylistRepository
-            p = PlaylistRepository.create(name)
-            if p:
-                self.add_playlist(p.name, p.id)
-                self.playlist_created.emit(p.name)
-            else:
-                QMessageBox.critical(self, "Error", "Failed to create playlist in database")
+            try:
+                # Validate name
+                validate_playlist_name(name)
+                
+                # Create in DB
+                from src.database.repository import PlaylistRepository
+                p = PlaylistRepository.create(name)
+                if p:
+                    self.add_playlist(p.name, p.id)
+                    self.playlist_created.emit(p.name)
+                else:
+                    QMessageBox.critical(self, "Error", "Failed to create playlist in database")
+            except ValueError as e:
+                QMessageBox.warning(self, "Invalid Name", str(e))
             
     def add_playlist(self, name: str, playlist_id: int = None):
         """Add playlist to tree"""

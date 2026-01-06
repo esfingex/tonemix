@@ -113,7 +113,7 @@ class LibraryTableView(QTableView):
     track_double_clicked = Signal(int)  # track_id
     analyze_requested = Signal(list)  # list of track_ids
     load_to_deck_requested = Signal(int, str)  # track_id, deck_id
-    transcode_requested = Signal(list)  # list of track_ids
+    transcode_requested = Signal(list, str)  # list of track_ids, format
     export_requested = Signal(list)  # list of track_ids
     transcode_requested = Signal(list)  # list of track_ids
     export_requested = Signal(list)  # list of track_ids
@@ -310,7 +310,12 @@ class LibraryTableView(QTableView):
         self._populate_playlist_menu(playlist_menu, track_ids)
         menu.addSeparator()
         
-        transcode_action = menu.addAction("🎵 Transcode to AIFF")
+        # Transcode submenu
+        transcode_menu = menu.addMenu("🎵 Transcode to...")
+        transcode_aiff = transcode_menu.addAction("AIFF (24-bit)")
+        transcode_wav = transcode_menu.addAction("WAV (24-bit)")
+        transcode_mp3 = transcode_menu.addAction("MP3 (320kbps)")
+        transcode_flac = transcode_menu.addAction("FLAC")
         menu.addSeparator()
         
         export_action = menu.addAction("📤 Export to Rekordbox")
@@ -324,8 +329,14 @@ class LibraryTableView(QTableView):
         # Handle actions
         if action == analyze_action or action == reanalyze_action:
             self.analyze_requested.emit(track_ids)
-        elif action == transcode_action:
-            self.transcode_requested.emit(track_ids)
+        elif action == transcode_aiff:
+            self.transcode_requested.emit(track_ids, 'aiff')
+        elif action == transcode_wav:
+            self.transcode_requested.emit(track_ids, 'wav')
+        elif action == transcode_mp3:
+            self.transcode_requested.emit(track_ids, 'mp3')
+        elif action == transcode_flac:
+            self.transcode_requested.emit(track_ids, 'flac')
         elif action == export_action:
             self.export_requested.emit(track_ids)
         elif action == delete_action:

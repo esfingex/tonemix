@@ -24,6 +24,7 @@ from src.core.transcoder import AudioTranscoder
 from src.export.rekordbox_exporter import RekordboxExporter
 from src.ui.dialogs.preferences import PreferencesDialog
 from src.utils.config import config
+from src.utils.security import validate_audio_file
 from PySide6.QtGui import QKeySequence, QShortcut
 
 logger = logging.getLogger(__name__)
@@ -91,17 +92,20 @@ class TranscodeWorker(QThread):
     finished = Signal()
     error = Signal(str)
     
-    def __init__(self, track_files: dict, output_dir: str):
+    def __init__(self, track_files: dict, output_dir: str, target_format: str = 'aiff'):
         """
         Args:
             track_files: Dict {track_id: input_path}
             output_dir: Destination directory
+            target_format: Output format (aiff, mp3, wav, flac)
         """
         super().__init__()
         self.track_files = track_files
         self.output_dir = output_dir
+        self.target_format = target_format
         self.transcoder = AudioTranscoder()
         self._is_running = True
+        self.timeout_seconds = 300  # 5 minutes max per file
         
     def run(self):
         """Run transcoding"""
@@ -116,9 +120,9 @@ class TranscodeWorker(QThread):
                 # Transcode logic
                 # Determine output filename
                 input_file = Path(input_path)
-                output_path = str(Path(self.output_dir) / f"{input_file.stem}.aiff")
+                output_path = str(Path(self.output_dir) / f"{input_file.stem}.{self.target_format}")
                 
-                result = self.transcoder.transcode_to_aiff(input_path, output_path)
+                result = self.transcoder.transcode_file(input_path, output_path, self.target_format)
                 
                 if result:
                     self.file_transcoded.emit(track_id, result)
@@ -301,6 +305,7 @@ class MainWindow(QMainWindow):
         self.sidebar.item_selected.connect(self._on_sidebar_item_selected)
         self.sidebar.playlist_created.connect(self._on_playlist_created)
         self.sidebar.add_tracks_requested.connect(self._add_tracks_to_playlist_dialog)
+        self.sidebar.transcode_playlist_requested.connect(self._on_transcode_playlist_requested)
         self.sidebar.tracks_dropped.connect(self._add_tracks_to_playlist)
         self.main_splitter.addWidget(self.sidebar)
         
@@ -607,6 +612,13 @@ class MainWindow(QMainWindow):
         
         for file_path in valid_files:
             try:
+                # Validate file security
+                try:
+                    validate_audio_file(file_path)
+                except ValueError as e:
+                    logger.warning(f"Skipping invalid file {file_path}: {e}")
+                    continue
+                
                 # Check if already exists
                 existing = self.repository.get_by_path(file_path)
                 track_id = None
@@ -803,7 +815,7 @@ class MainWindow(QMainWindow):
     # Transcode Workflow
     # ==========================
 
-    def _on_transcode_requested(self, track_ids: list):
+    def _on_transcode_requested(self, track_ids: list, target_format: str = 'aiff'):
         """Handle transcode request"""
         if not track_ids:
             return
@@ -824,13 +836,13 @@ class MainWindow(QMainWindow):
             return
             
         # Start Worker
-        self.transcode_worker = TranscodeWorker(track_files, output_dir)
+        self.transcode_worker = TranscodeWorker(track_files, output_dir, target_format)
         self.transcode_worker.progress.connect(self._on_transcode_progress)
         self.transcode_worker.finished.connect(self._on_transcode_finished)
         self.transcode_worker.file_transcoded.connect(self._on_file_transcoded)
         self.transcode_worker.error.connect(self._on_analysis_error)
         
-        self.status_bar.showMessage(f"Transcoding {len(track_files)} tracks...")
+        self.status_bar.showMessage(f"Transcoding {len(track_files)} tracks to {target_format.upper()}...")
         self.progress_bar.setVisible(True)
         self.progress_bar.setMaximum(len(track_files))
         self.progress_bar.setValue(0)
@@ -839,6 +851,19 @@ class MainWindow(QMainWindow):
         self.transcoded_results = [] # List of new file paths
         
         self.transcode_worker.start()
+
+    def _on_transcode_playlist_requested(self, playlist_id: int, target_format: str):
+        """Handle transcode request for entire playlist"""
+        # Get all tracks in playlist
+        from src.database.repository import PlaylistRepository
+        tracks = PlaylistRepository.get_tracks(playlist_id)
+        
+        if not tracks:
+            QMessageBox.information(self, "Empty Playlist", "This playlist has no tracks to transcode.")
+            return
+        
+        track_ids = [t.id for t in tracks]
+        self._on_transcode_requested(track_ids, target_format)
         
     def _on_transcode_progress(self, current, total):
         self.progress_bar.setValue(current)

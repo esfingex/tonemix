@@ -22,13 +22,14 @@ class AudioTranscoder:
         self.bit_depth = config.transcoding.get('bit_depth', 24)
         self.preserve_metadata = config.transcoding.get('preserve_metadata', True)
     
-    def transcode_to_aiff(self, input_path: str, output_path: str = None) -> Optional[str]:
+    def transcode_file(self, input_path: str, output_path: str = None, format: str = 'aiff') -> Optional[str]:
         """
-        Transcode audio file to AIFF 24-bit
+        Transcode audio file to specified format
         
         Args:
             input_path: Input file path
             output_path: Output file path (auto-generated if None)
+            format: Target format (aiff, wav, mp3, flac)
             
         Returns:
             Output file path or None on error
@@ -37,15 +38,23 @@ class AudioTranscoder:
             # Generate output path if not provided
             if output_path is None:
                 input_file = Path(input_path)
-                output_path = str(input_file.parent / f"{input_file.stem}.aiff")
+                output_path = str(input_file.parent / f"{input_file.stem}.{format}")
             
             # Build FFmpeg command
             cmd = [
                 self.ffmpeg_path,
                 '-i', input_path,
-                '-acodec', 'pcm_s24be',  # 24-bit big-endian PCM
-                '-f', 'aiff',
             ]
+            
+            # Format specific settings
+            if format in ['aiff', 'wav']:
+                cmd.extend(['-acodec', 'pcm_s24be' if format == 'aiff' else 'pcm_s24le'])
+            elif format == 'mp3':
+                cmd.extend(['-acodec', 'libmp3lame', '-b:a', '320k'])
+            elif format == 'flac':
+                cmd.extend(['-acodec', 'flac'])
+            
+            cmd.extend(['-f', format])
             
             # Preserve metadata
             if self.preserve_metadata:
@@ -54,7 +63,7 @@ class AudioTranscoder:
             # Output file (overwrite if exists)
             cmd.extend(['-y', output_path])
             
-            logger.info(f"Transcoding {input_path} to {output_path}")
+            logger.info(f"Transcoding {input_path} to {output_path} ({format})")
             
             # Run FFmpeg
             result = subprocess.run(
