@@ -175,13 +175,29 @@ class AudioTranscoder:
                 'date': TDRC
             }
             
+            # Helper to find key case-insensitively
+            def get_tag_value(src, key_name):
+                # Try exact match
+                if key_name in src:
+                    return src[key_name]
+                # Try uppercase (common in FLAC/Vorbis)
+                if key_name.upper() in src:
+                    return src[key_name.upper()]
+                # Try title case
+                if key_name.title() in src:
+                    return src[key_name.title()]
+                return None
+
             for key, frame_class in tag_map.items():
-                if key in source:
+                val = get_tag_value(source, key)
+                if val:
                     # Some formats return list
-                    val = source[key]
                     if isinstance(val, list):
                         val = val[0]
                     dest.tags.add(frame_class(encoding=3, text=str(val)))
+                    logger.info(f"Copied tag {key}: {val}")
+                else:
+                     logger.debug(f"Tag {key} not found in source")
             
             # Copy artwork
             # FLAC
