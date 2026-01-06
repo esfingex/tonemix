@@ -165,6 +165,7 @@ class MainWindow(QMainWindow):
         
         # State
         self._current_playlist_id = None
+        self._current_device_path = None
         
         # Setup UI
         self._create_menu_bar()
@@ -369,27 +370,32 @@ class MainWindow(QMainWindow):
         elif item_type == "all_tracks":
             # Show all tracks from library
             self._current_playlist_id = None
+            self._current_device_path = None
             self._load_tracks()
             self.status_bar.showMessage("Showing all tracks")
         elif item_type == "root_playlists":
             # Clear table when clicking on Playlists root
             self._current_playlist_id = None
+            self._current_device_path = None
             self.table_model.set_tracks([])
             self.status_bar.showMessage("Select a playlist to view tracks")
         elif item_type == "root_library":
             # Show all tracks when clicking Library root
             self._current_playlist_id = None
+            self._current_device_path = None
             self._load_tracks()
             self.status_bar.showMessage("Showing all tracks")
         elif item_type == "root_devices":
             # Select root devices
             self._current_playlist_id = None
+            self._current_device_path = None
             self.table_model.set_tracks([])
             self.status_bar.showMessage("Select a specific device to view tracks")
         elif item_type == "device":
             # Load tracks from device
             self._current_playlist_id = None
             mount_point = item.data(0, Qt.UserRole + 1)
+            self._current_device_path = mount_point
             self._load_device_tracks(mount_point)
 
     def _load_device_tracks(self, mount_point: str):
@@ -887,6 +893,19 @@ class MainWindow(QMainWindow):
         
         if not self.transcoded_results:
             return
+
+        # Check if we are viewing the output folder in Devices
+        if self._current_device_path:
+            # Check if any new file is in current path
+            should_refresh = False
+            for new_path in self.transcoded_results:
+                if str(Path(new_path).parent).startswith(self._current_device_path):
+                    should_refresh = True
+                    break
+            
+            if should_refresh:
+                self._load_device_tracks(self._current_device_path)
+                QMessageBox.information(self, "Refreshed", f"Found {len(self.transcoded_results)} new files in current folder.")
 
         # Ask to create playlist
         from PySide6.QtWidgets import QMessageBox as QMsgBox, QInputDialog
