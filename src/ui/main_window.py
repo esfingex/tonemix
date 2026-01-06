@@ -1095,34 +1095,103 @@ class MainWindow(QMainWindow):
             logger.error("No file paths found for analysis")
 
     def _on_delete_requested(self, track_ids: list):
-        """Handle delete request"""
+        """Handle delete request with advanced options"""
         if not track_ids:
             return
             
-        # Confirm
         count = len(track_ids)
-        msg = f"Are you sure you want to delete {count} tracks?"
+        
+        # Create custom dialog
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QCheckBox, QDialogButtonBox
+        import os
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Remove Tracks")
+        layout = QVBoxLayout(dialog)
+        
+        # Message
         if self._current_playlist_id:
-            msg += f" They will be removed from the current playlist."
+            msg = f"Remove {count} tracks from this playlist?"
         else:
-            msg += f" They will be removed from the library (but not disk)."
+            msg = f"Remove {count} tracks from Library?"
+        layout.addWidget(QLabel(msg))
+        
+        # Options
+        check_delete_library = None
+        if self._current_playlist_id:
+            check_delete_library = QCheckBox("Also remove from Library (Database)")
+            layout.addWidget(check_delete_library)
             
-        if QMessageBox.question(self, "Confirm Delete", msg) != QMessageBox.Yes:
+        check_delete_disk = QCheckBox("⚠️ Also delete files from DISK (Permanent)")
+        # Style filtering for danger
+        check_delete_disk.setStyleSheet("color: #ff5555; font-weight: bold;")
+        layout.addWidget(check_delete_disk)
+        
+        # Buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        
+        # Dynamic behavior: checking disk automatically checks library
+        if check_delete_library:
+            check_delete_disk.toggled.connect(lambda checked: check_delete_library.setChecked(True) if checked else None)
+        
+        if dialog.exec_() != QDialog.Accepted:
             return
             
+        # Execute actions
+        delete_from_lib = True # Default for library view
+        
         if self._current_playlist_id:
-            # Remove from playlist
+            # First remove from playlist
             from src.database.repository import PlaylistRepository
             for t_id in track_ids:
                 PlaylistRepository.remove_track(self._current_playlist_id, t_id)
-            self._filter_by_playlist(self._current_playlist_id) # Refresh
-        else:
-            # Delete from library
+            
+            # Determine if we continue to library delete
+            if check_delete_library and not check_delete_library.isChecked():
+                delete_from_lib = False
+                
+        if delete_from_lib:
+            # Collect file paths BEFORE deleting from DB
+            files_to_delete = []
+            if check_delete_disk.isChecked():
+                for t_id in track_ids:
+                    track = self.repository.get_by_id(t_id)
+                    if track and track.file_path:
+                        files_to_delete.append(track.file_path)
+            
+            # Delete from DB
             for t_id in track_ids:
                 self.repository.delete(t_id)
-            self._load_tracks() # Refresh
-            
-        self.status_bar.showMessage(f"Deleted {count} tracks", 3000)
+                
+            # Delete from Disk
+            if check_delete_disk.isChecked():
+                deleted_files = 0
+                for fp in files_to_delete:
+                    try:
+                        if os.path.exists(fp):
+                            os.remove(fp)
+                            deleted_files += 1
+                            logger.info(f"Deleted file: {fp}")
+                    except Exception as e:
+                        logger.error(f"Error deleting file {fp}: {e}")
+                
+                if deleted_files > 0:
+                    self.status_bar.showMessage(f"Removed {count} tracks and {deleted_files} files from disk", 4000)
+                else:
+                    self.status_bar.showMessage(f"Removed {count} tracks from library", 3000)
+            else:
+                self.status_bar.showMessage(f"Removed {count} tracks from library", 3000)
+        else:
+             self.status_bar.showMessage(f"Removed {count} tracks from playlist", 3000)
+
+        # Refresh UI
+        if self._current_playlist_id:
+            self._filter_by_playlist(self._current_playlist_id)
+        else:
+            self._load_tracks()
     
     def _on_export_requested(self, track_ids: list):
         """Export tracks to Rekordbox"""
