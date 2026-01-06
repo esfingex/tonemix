@@ -56,24 +56,29 @@ def get_main_stylesheet():
     /* Sidebar Tree */
     QTreeWidget {
         background-color: #24262d;
-        border: 1px solid #2d303b;
+        border: 1px solid #2d303b; /* Outer border is fine */
         border-radius: 8px;
         outline: none;
-        padding: 5px;
+        padding: 4px;
     }
     QTreeWidget::item {
-        padding: 6px;
-        margin: 2px;
+        padding: 8px;
+        margin: 1px;
+        border: none; /* No borders on items */
         border-radius: 4px;
         color: #e0e0e0;
     }
     QTreeWidget::item:hover {
-        background-color: #2f323e;
+        background-color: #333642; /* Lighter hover */
+        color: #ffffff;
     }
     QTreeWidget::item:selected {
-        background-color: #383b4a;
-        border-left: 2px solid #00d1b2;
-        color: #fff;
+        background-color: #3e4150;
+        color: #00d1b2; /* Cyan text highlights selection */
+        font-weight: bold;
+    }
+    QTreeWidget::branch {
+        background: transparent;
     }
     
     /* Buttons */
