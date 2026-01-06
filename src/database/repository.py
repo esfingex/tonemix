@@ -56,7 +56,7 @@ class TrackRepository:
         try:
             with get_session() as session:
                 session.expire_on_commit = False
-                query = session.query(Track).order_by(Track.created_at.desc())
+                query = session.query(Track).order_by(Track.created_at.asc())
                 if limit:
                     query = query.limit(limit).offset(offset)
                 return query.all()
