@@ -1289,6 +1289,15 @@ class MainWindow(QMainWindow):
         
         # Get config
         shortcuts = config.shortcuts
+        
+        # Migration: Fix Ctrl+A conflict for existing users
+        if shortcuts.get('analyze_selected') == 'Ctrl+A':
+            logger.info("Migrating shortcut: analyze_selected Ctrl+A -> Ctrl+Shift+A")
+            shortcuts['analyze_selected'] = 'Ctrl+Shift+A'
+            shortcuts['select_all'] = 'Ctrl+A'
+            config.set('shortcuts', shortcuts)
+            config.save()
+            
         defaults = {
             "play_deck_a": "Space",
             "play_deck_b": "Ctrl+Space",
@@ -1297,8 +1306,9 @@ class MainWindow(QMainWindow):
             "load_deck_a": "Ctrl+1",
             "load_deck_b": "Ctrl+2",
             "delete_from_playlist": "Delete",
-            "analyze_selected": "Ctrl+A",
-            "transcode_selected": "Ctrl+T"
+            "analyze_selected": "Ctrl+Shift+A",
+            "transcode_selected": "Ctrl+T",
+            "select_all": "Ctrl+A"
         }
         
         # Merge
@@ -1315,7 +1325,8 @@ class MainWindow(QMainWindow):
             "load_deck_b": self._load_to_deck_b,
             "delete_from_playlist": self._on_delete_requested_shortcut,
             "analyze_selected": self._analyze_selected_tracks_shortcut,
-            "transcode_selected": self._transcode_selected_shortcut
+            "transcode_selected": self._transcode_selected_shortcut,
+            "select_all": lambda: self.table_view.selectAll() if hasattr(self, 'table_view') else None
         }
         
         for action_id, key_seq in active_shortcuts.items():

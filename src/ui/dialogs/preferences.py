@@ -108,7 +108,8 @@ class ShortcutsWidget(QWidget):
             "load_deck_b": "Load to Deck B",
             "delete_from_playlist": "Delete from Playlist/Library",
             "analyze_selected": "Analyze Selected",
-            "transcode_selected": "Transcode Selected"
+            "transcode_selected": "Transcode Selected",
+            "select_all": "Select All Tracks"
         }
         self.default_keys = {
             "play_deck_a": "Space",
@@ -118,8 +119,9 @@ class ShortcutsWidget(QWidget):
             "load_deck_a": "Ctrl+1",
             "load_deck_b": "Ctrl+2",
             "delete_from_playlist": "Delete",
-            "analyze_selected": "Ctrl+A",
-            "transcode_selected": "Ctrl+T"
+            "analyze_selected": "Ctrl+Shift+A",
+            "transcode_selected": "Ctrl+T",
+            "select_all": "Ctrl+A"
         }
         
     def init_ui(self):
