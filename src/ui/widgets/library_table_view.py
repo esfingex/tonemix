@@ -3,7 +3,7 @@ Library table view with custom delegates
 """
 from PySide6.QtWidgets import (QTableView, QStyledItemDelegate, QStyle, 
                                 QStyleOptionViewItem, QMenu, QHeaderView)
-from PySide6.QtCore import Qt, Signal, QModelIndex, QSize, QEvent, QPoint
+from PySide6.QtCore import Qt, Signal, QModelIndex, QSize, QEvent, QPoint, QRect
 from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QPixmap, QFont
 import logging
 
