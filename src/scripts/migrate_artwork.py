@@ -41,7 +41,7 @@ def migrate():
         
         count = 0
         for track in tracks:
-            if track.file_path and not track.artwork_thumbnail:
+            if track.file_path: # Always update to get new size
                 try:
                     artwork = processor.extract_artwork(track.file_path)
                     if artwork:

@@ -29,8 +29,8 @@ class ArtworkDelegate(QStyledItemDelegate):
         # Draw image
         if not pixmap.isNull():
             # Center vertically
-            size = min(option.rect.height() - 4, 64)
-            x = option.rect.x() + 2
+            size = min(option.rect.height() - 4, 90)
+            x = option.rect.x() + 5
             y = option.rect.y() + (option.rect.height() - size) // 2
             
             target_rect = QRect(x, y, size, size)
@@ -38,7 +38,7 @@ class ArtworkDelegate(QStyledItemDelegate):
 
     def sizeHint(self, option, index):
         """Return size hint"""
-        return QSize(70, 70)  # 64px image + padding
+        return QSize(100, 100)  # 90px image + padding
 
 
 class KeyDelegate(QStyledItemDelegate):
@@ -190,7 +190,7 @@ class LibraryTableView(QTableView):
         self.setItemDelegateForColumn(rating_column, self.rating_delegate)
         
         # Set fixed width for artwork column
-        self.setColumnWidth(artwork_column, 70)
+        self.setColumnWidth(artwork_column, 100)
     
     def mousePressEvent(self, event):
         """Handle mouse press for drag init"""

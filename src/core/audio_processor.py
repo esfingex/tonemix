@@ -197,7 +197,7 @@ class AudioProcessor:
                     img = img.convert('RGB')
                 
                 # Create thumbnail
-                img.thumbnail((64, 64), Image.LANCZOS)
+                img.thumbnail((128, 128), Image.LANCZOS)
                 
                 # Save as PNG
                 output = io.BytesIO()
