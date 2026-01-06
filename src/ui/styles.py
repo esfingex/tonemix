@@ -68,17 +68,19 @@ def get_main_stylesheet():
         border-radius: 4px;
         color: #e0e0e0;
     }
-    QTreeWidget::item:hover {
-        background-color: #333642; /* Lighter hover */
-        color: #ffffff;
-    }
-    QTreeWidget::item:selected {
-        background-color: #3e4150;
-        color: #00d1b2; /* Cyan text highlights selection */
-        font-weight: bold;
-    }
     QTreeWidget::branch {
         background: transparent;
+        border: none;
+    }
+    QTreeWidget::branch:has-children:!has-siblings:closed,
+    QTreeWidget::branch:closed:has-children:has-siblings {
+        border-image: none;
+        image: none; /* Let system draw arrow, or specify one if needed. System usually fine if background is transparent */
+    }
+    QTreeWidget::item:hover {
+        background-color: #333642;
+        color: #ffffff;
+        border: none;
     }
     
     /* Buttons */

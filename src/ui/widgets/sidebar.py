@@ -4,6 +4,7 @@ Collapsible sidebar for navigation
 from PySide6.QtWidgets import (QTreeWidget, QTreeWidgetItem, QWidget, QVBoxLayout,
                                 QMenu, QInputDialog, QMessageBox, QStyle)
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QIcon, QPixmap, QImage, QColor, QPainter
 import logging
 import psutil
 from src.ui.utils.icons import get_icon
@@ -118,14 +119,23 @@ class Sidebar(QWidget):
         self.refresh_devices()
         
     
+    def _get_mono_icon(self, standard_id):
+        """Get monochrome version of standard icon"""
+        icon = self.style().standardIcon(standard_id)
+        pixmap = icon.pixmap(20, 20)
+        if pixmap.isNull():
+            return icon
+            
+        # Convert to grayscale
+        img = pixmap.toImage().convertToFormat(QImage.Format_Grayscale8)
+        return QIcon(QPixmap.fromImage(img))
+
     def _init_items(self):
         """Initialize tree items"""
-        # Get standard icons
-        style = self.style()
-        dir_icon = style.standardIcon(QStyle.SP_DirIcon)
-        file_icon = style.standardIcon(QStyle.SP_FileIcon)
-        media_icon = style.standardIcon(QStyle.SP_MediaPlay)
-        drive_icon = style.standardIcon(QStyle.SP_DriveHDIcon)
+        # Get standard icons (Monochrome)
+        dir_icon = self._get_mono_icon(QStyle.SP_DirIcon)
+        media_icon = self._get_mono_icon(QStyle.SP_MediaPlay)
+        drive_icon = self._get_mono_icon(QStyle.SP_DriveHDIcon)
 
         # Library Root
         self.library_root = QTreeWidgetItem(self.tree)
