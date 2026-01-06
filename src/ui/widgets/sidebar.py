@@ -2,7 +2,7 @@
 Collapsible sidebar for navigation
 """
 from PySide6.QtWidgets import (QTreeWidget, QTreeWidgetItem, QWidget, QVBoxLayout,
-                                QMenu, QInputDialog, QMessageBox)
+                                QMenu, QInputDialog, QMessageBox, QStyle)
 from PySide6.QtCore import Qt, Signal
 import logging
 import psutil
@@ -117,28 +117,40 @@ class Sidebar(QWidget):
         # Load devices
         self.refresh_devices()
         
+    
     def _init_items(self):
         """Initialize tree items"""
+        # Get standard icons
+        style = self.style()
+        dir_icon = style.standardIcon(QStyle.SP_DirIcon)
+        file_icon = style.standardIcon(QStyle.SP_FileIcon)
+        media_icon = style.standardIcon(QStyle.SP_MediaPlay)
+        drive_icon = style.standardIcon(QStyle.SP_DriveHDIcon)
+
         # Library Root
         self.library_root = QTreeWidgetItem(self.tree)
         self.library_root.setText(0, "Library")
+        self.library_root.setIcon(0, dir_icon)
         self.library_root.setExpanded(True)
         self.library_root.setData(0, Qt.UserRole, "root_library")
         
         # All Tracks (always visible)
         self.all_tracks_item = QTreeWidgetItem(self.library_root)
-        self.all_tracks_item.setText(0, "📚 All Tracks")
+        self.all_tracks_item.setText(0, "All Tracks")
+        self.all_tracks_item.setIcon(0, media_icon)
         self.all_tracks_item.setData(0, Qt.UserRole, "all_tracks")
         
         # Playlists Root
         self.playlists_root = QTreeWidgetItem(self.tree)
         self.playlists_root.setText(0, "Playlists")
+        self.playlists_root.setIcon(0, dir_icon)
         self.playlists_root.setExpanded(True)
         self.playlists_root.setData(0, Qt.UserRole, "root_playlists")
         
         # Devices Root
         self.devices_root = QTreeWidgetItem(self.tree)
         self.devices_root.setText(0, "Devices")
+        self.devices_root.setIcon(0, drive_icon)
         self.devices_root.setExpanded(True)
         self.devices_root.setData(0, Qt.UserRole, "root_devices")
     
