@@ -226,8 +226,8 @@ class AudioTranscoder:
                     # Resize if too large
                     img = Image.open(io.BytesIO(pic_data))
                     
-                    # If larger than 1024x1024, resize
-                    max_size = 1024
+                    # If larger than 600x600, resize (Best for CDJs/Legacy)
+                    max_size = 600
                     if img.width > max_size or img.height > max_size:
                         img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
                         
