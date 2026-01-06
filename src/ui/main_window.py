@@ -89,7 +89,7 @@ class TranscodeWorker(QThread):
     
     progress = Signal(int, int)  # current, total
     file_transcoded = Signal(int, str)  # original_track_id, new_file_path
-    finished = Signal()
+    # finished = Signal()  # REMOVED: Use QThread.finished
     error = Signal(str)
     
     def __init__(self, track_files: dict, output_dir: str, target_format: str = 'aiff'):
@@ -136,7 +136,7 @@ class TranscodeWorker(QThread):
                 logger.error(f"Transcode error for {input_path}: {e}")
                 self.error.emit(f"Error transcoding {Path(input_path).name}: {e}")
                 
-        self.finished.emit()
+        # self.finished.emit() # REMOVED: QThread emits finished automatically
     
     def stop(self):
         self._is_running = False
