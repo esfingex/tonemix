@@ -58,6 +58,16 @@ class TrackTableModel(QAbstractTableModel):
         track = self._tracks[index.row()]
         col = index.column()
         
+        if role == Qt.ToolTipRole:
+             if col in [self.COL_TITLE, self.COL_ARTIST, self.COL_ALBUM, self.COL_PATH]:
+                 # Return specific text for primary columns
+                 if col == self.COL_TITLE: return track.title
+                 if col == self.COL_ARTIST: return track.artist
+                 if col == self.COL_ALBUM: return track.album
+                 if col == self.COL_PATH: return track.file_path
+             return None # Fallback for others
+
+        
         if role == Qt.UserRole + 2:  # Artwork Role
             if col == self.COL_ARTWORK:
                 return track.artwork_thumbnail

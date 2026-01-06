@@ -23,6 +23,7 @@ from src.core.transcoder import AudioTranscoder
 from src.core.transcoder import AudioTranscoder
 from src.export.rekordbox_exporter import RekordboxExporter
 from src.ui.dialogs.preferences import PreferencesDialog
+from src.ui.styles import get_main_stylesheet
 from src.utils.config import config
 from src.utils.security import validate_audio_file
 from PySide6.QtGui import QKeySequence, QShortcut
@@ -172,6 +173,9 @@ class MainWindow(QMainWindow):
         self._create_toolbar()
         self._create_ui()
         self._create_status_bar()
+        
+        # Apply Styles
+        self.setStyleSheet(get_main_stylesheet())
         
         # Load tracks
         self._load_tracks()
