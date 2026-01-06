@@ -70,9 +70,11 @@ class AudioTranscoder:
             logger.info(f"Transcoding {input_path} to {output_path} ({format})")
             
             # Run FFmpeg
+            # Using DEVNULL for stdout to avoid buffer issues, capture stderr for errors
             result = subprocess.run(
                 cmd,
-                capture_output=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
                 text=True,
                 check=True
             )
@@ -141,7 +143,8 @@ class AudioTranscoder:
         
         for i, input_path in enumerate(input_paths):
             try:
-                output_path = self.transcode_to_aiff(input_path)
+                # Determine format from config or default to aiff for batch method (legacy support)
+                output_path = self.transcode_file(input_path, format=self.output_format)
                 if output_path:
                     results[input_path] = output_path
                 
@@ -155,10 +158,12 @@ class AudioTranscoder:
 
     def copy_metadata_and_artwork(self, source_path: str, dest_path: str) -> bool:
         """
-        Copy tags and artwork from source to destination
-        Uses Mutagen because FFmpeg often fails with AIFF artwork
+        Copy tags and artwork from source to destination with resizing
         """
         try:
+            from PIL import Image
+            import io
+            
             source = File(source_path)
             dest = File(dest_path)
             
@@ -174,55 +179,88 @@ class AudioTranscoder:
                 'title': TIT2,
                 'artist': TPE1,
                 'album': TALB,
-                'date': TDRC
+                'date': TDRC,
+                'genre': lambda v: from_str(v) if 'from_str' in globals() else None # Placeholder
             }
             
             # Helper to find key case-insensitively
             def get_tag_value(src, key_name):
                 # Try exact match
-                if key_name in src:
-                    return src[key_name]
-                # Try uppercase (common in FLAC/Vorbis)
-                if key_name.upper() in src:
-                    return src[key_name.upper()]
+                if key_name in src: return src[key_name]
+                # Try uppercase (FLAC/Vorbis)
+                if key_name.upper() in src: return src[key_name.upper()]
                 # Try title case
-                if key_name.title() in src:
-                    return src[key_name.title()]
+                if key_name.title() in src: return src[key_name.title()]
                 return None
 
-            for key, frame_class in tag_map.items():
+            # Standard tags
+            for key in ['title', 'artist', 'album', 'date', 'genre', 'composer', 'copyright', 'isrc']:
                 val = get_tag_value(source, key)
-                if val:
-                    # Some formats return list
-                    if isinstance(val, list):
-                        val = val[0]
+                frame_class = globals().get(
+                    {'title': 'TIT2', 'artist': 'TPE1', 'album': 'TALB', 'date': 'TDRC', 
+                     'genre': 'TCON', 'composer': 'TCOM', 'copyright': 'TCOP', 'isrc': 'TSRC'}.get(key)
+                )
+                
+                if val and frame_class:
+                    if isinstance(val, list): val = val[0]
                     dest.tags.add(frame_class(encoding=3, text=str(val)))
-                    logger.info(f"Copied tag {key}: {val}")
-                else:
-                     logger.debug(f"Tag {key} not found in source")
             
-            # Copy artwork
-            # FLAC
+            # Copy artwork with resizing
+            pic_data = None
+            mime = 'image/jpeg'
+            
+            # Extract from FLAC
             if hasattr(source, 'pictures') and source.pictures:
-                pic = source.pictures[0]
-                dest.tags.add(APIC(
-                    encoding=3,
-                    mime=pic.mime,
-                    type=3, # 3 is cover front
-                    desc=u'Cover',
-                    data=pic.data
-                ))
-            # Parameters for MP3/ID3 source
+                pic_data = source.pictures[0].data
+                mime = source.pictures[0].mime
+            # Extract from ID3
             elif hasattr(source, 'tags'):
                 for tag in source.tags.values():
                     if tag.__class__.__name__ == 'APIC':
-                        dest.tags.add(tag)
+                        pic_data = tag.data
+                        mime = tag.mime
                         break
             
+            if pic_data:
+                try:
+                    # Resize if too large
+                    img = Image.open(io.BytesIO(pic_data))
+                    
+                    # If larger than 1024x1024, resize
+                    max_size = 1024
+                    if img.width > max_size or img.height > max_size:
+                        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+                        
+                        # Save to new buffer
+                        out_buffer = io.BytesIO()
+                        # Convert to RGB to ensure JPEG compatibility
+                        if img.mode in ('RGBA', 'P'): 
+                            img = img.convert('RGB')
+                        
+                        img.save(out_buffer, format='JPEG', quality=85)
+                        pic_data = out_buffer.getvalue()
+                        mime = 'image/jpeg'
+                        logger.info(f"Resized artwork to {img.size}")
+                    
+                    dest.tags.add(APIC(
+                        encoding=3,
+                        mime=mime,
+                        type=3, 
+                        desc=u'Cover',
+                        data=pic_data
+                    ))
+                    logger.info("Artwork copied and optimized")
+                    
+                except Exception as img_err:
+                    logger.warning(f"Failed to process artwork image: {img_err}")
+                    # Fallback: try copying raw data if resize failed? 
+                    # Probably better to skip to avoid crash
+            
             dest.save()
-            logger.info(f"Metadata copied to {dest_path}")
             return True
             
         except Exception as e:
             logger.warning(f"Error copying metadata: {e}")
+            import traceback
+            traceback.print_exc()
             return False
