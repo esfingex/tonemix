@@ -60,9 +60,14 @@ class AudioTranscoder:
             
             cmd.extend(['-f', format])
             
-            # Preserve metadata
+            # Metadata handling
+            # If target is AIFF/WAV, we handle metadata manually with Mutagen to support resizing
+            # So we tell FFmpeg to STRIP all metadata to prevent crashes with large covers
             if self.preserve_metadata:
-                cmd.extend(['-map_metadata', '0'])
+                if format in ['aiff', 'wav']:
+                    cmd.extend(['-map_metadata', '-1']) # Strip metadata in FFmpeg
+                else:
+                    cmd.extend(['-map_metadata', '0']) # Keep for others (mp3/flac)
             
             # Output file (overwrite if exists)
             cmd.extend(['-y', output_path])
