@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, Signal
 import logging
 import psutil
 from src.ui.utils.icons import get_icon
+from src.database.repository import PlaylistRepository
 
 logger = logging.getLogger(__name__)
 
@@ -76,10 +77,11 @@ class Sidebar(QWidget):
     Collapsible sidebar for navigation
     """
     # Signals
-    playlist_created = Signal(str, int)  # name, id
+    playlist_created = Signal(str)
     playlist_selected = Signal(int)    # id
-    item_selected = Signal(str, object) # type, data
+    item_selected = Signal(str, object) # type, item
     tracks_dropped = Signal(int, list) # playlist_id, track_ids
+    add_tracks_requested = Signal(int) # playlist_id
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -99,6 +101,11 @@ class Sidebar(QWidget):
         # Connect signals
         self.tree.itemClicked.connect(self._on_item_clicked)
         # self.tree.itemSelectionChanged.connect(self._on_selection_changed)
+        
+        # Connect signals
+        self.tree.itemClicked.connect(self._on_item_clicked)
+        self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self._show_context_menu)
         
         layout.addWidget(self.tree)
         
@@ -177,15 +184,71 @@ class Sidebar(QWidget):
             action = menu.addAction("Scan Devices")
             action.triggered.connect(self.refresh_devices)
             
+        elif item_type == "playlist":
+            playlist_id = item.data(0, Qt.UserRole + 1)
+            name = item.text(0)
+            
+            rename_action = menu.addAction("✏️ Rename")
+            rename_action.triggered.connect(lambda: self._rename_playlist(playlist_id, name))
+            
+            delete_action = menu.addAction("🗑️ Delete")
+            delete_action.triggered.connect(lambda: self._delete_playlist(playlist_id, name))
+            
+            menu.addSeparator()
+            
+            add_tracks_action = menu.addAction("➕ Add Tracks from Files...")
+            add_tracks_action.triggered.connect(lambda: self.add_tracks_requested.emit(playlist_id))
+            
         if not menu.isEmpty():
             menu.exec_(self.tree.viewport().mapToGlobal(position))
+            
+    def _rename_playlist(self, playlist_id, current_name):
+        new_name, ok = QInputDialog.getText(self, "Rename Playlist", "New Name:", text=current_name)
+        if ok and new_name:
+            if PlaylistRepository.update(playlist_id, {"name": new_name}):
+                self.reload_playlists()
+
+    def _delete_playlist(self, playlist_id, name):
+        reply = QMessageBox.question(self, "Delete Playlist", 
+                                   f"Are you sure you want to delete playlist '{name}'?",
+                                   QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            if PlaylistRepository.delete(playlist_id):
+                self.reload_playlists()
+
+    def reload_playlists(self):
+        """Reload all playlists from database"""
+        try:
+            playlists = PlaylistRepository.get_all()
+            if playlists is None:
+                logger.error("Failed to fetch playlists (returned None)")
+                return
+                
+            # Only clear if we successfully fetched
+            self.playlists_root.takeChildren()
+            
+            for p in playlists:
+                self.add_playlist(p.name, p.id)
+                
+            logger.info(f"Reloaded {len(playlists)} playlists")
+        except Exception as e:
+            logger.error(f"Error reloading playlists: {e}")
+            # Don't clear children on error to preserve state if possible?
+            # Or show error in UI?
+            QMessageBox.warning(self, "Error", f"Failed to reload playlists: {e}")
             
     def _create_playlist_dialog(self):
         """Show create playlist dialog"""
         name, ok = QInputDialog.getText(self, "New Playlist", "Playlist Name:")
         if ok and name:
-            self.add_playlist(name)
-            self.playlist_created.emit(name)
+            # Create in DB
+            from src.database.repository import PlaylistRepository
+            p = PlaylistRepository.create(name)
+            if p:
+                self.add_playlist(p.name, p.id)
+                self.playlist_created.emit(p.name)
+            else:
+                QMessageBox.critical(self, "Error", "Failed to create playlist in database")
             
     def add_playlist(self, name: str, playlist_id: int = None):
         """Add playlist to tree"""

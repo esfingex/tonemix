@@ -34,6 +34,7 @@ class TrackRepository:
         """Get track by ID"""
         try:
             with get_session() as session:
+                session.expire_on_commit = False
                 return session.query(Track).filter(Track.id == track_id).first()
         except Exception as e:
             logger.error(f"Error getting track by ID: {e}")
@@ -54,6 +55,7 @@ class TrackRepository:
         """Get all tracks with optional pagination"""
         try:
             with get_session() as session:
+                session.expire_on_commit = False
                 query = session.query(Track).order_by(Track.created_at.desc())
                 if limit:
                     query = query.limit(limit).offset(offset)
@@ -179,6 +181,47 @@ class PlaylistRepository:
         except Exception as e:
             logger.error(f"Error getting playlists: {e}")
             return []
+            
+    @staticmethod
+    def update(playlist_id: int, updates: Dict[str, Any]) -> Optional[Playlist]:
+        """Update playlist"""
+        try:
+            with get_session() as session:
+                playlist = session.query(Playlist).filter(Playlist.id == playlist_id).first()
+                if not playlist:
+                    return None
+                    
+                for key, value in updates.items():
+                    if hasattr(playlist, key):
+                        setattr(playlist, key, value)
+                        
+                session.flush()
+                session.refresh(playlist)
+                return playlist
+        except Exception as e:
+            logger.error(f"Error updating playlist: {e}")
+            return None
+
+    @staticmethod
+    def delete(playlist_id: int) -> bool:
+        """Delete playlist"""
+        try:
+            with get_session() as session:
+                playlist = session.query(Playlist).filter(Playlist.id == playlist_id).first()
+                if not playlist:
+                    return False
+                
+                # Dependencies (PlaylistTracks) should cascade if configured, 
+                # but manual cleanup is safer if not.
+                # Assuming Cascade Delete is set in models or we delete manually.
+                # Let's trust SQLAlchemy cascade or delete explicit tracks first?
+                session.query(PlaylistTrack).filter(PlaylistTrack.playlist_id == playlist_id).delete()
+                
+                session.delete(playlist)
+                return True
+        except Exception as e:
+            logger.error(f"Error deleting playlist: {e}")
+            return False
     
     @staticmethod
     def add_track(playlist_id: int, track_id: int) -> bool:
@@ -213,11 +256,30 @@ class PlaylistRepository:
             logger.error(f"Error adding track to playlist: {e}")
             return False
     
+    
+    @staticmethod
+    def remove_track(playlist_id: int, track_id: int) -> bool:
+        """Remove track from playlist"""
+        try:
+            with get_session() as session:
+                session.query(PlaylistTrack).filter(
+                    and_(
+                        PlaylistTrack.playlist_id == playlist_id,
+                        PlaylistTrack.track_id == track_id
+                    )
+                ).delete()
+                return True
+        except Exception as e:
+            logger.error(f"Error removing track from playlist: {e}")
+            return False
+
     @staticmethod
     def get_tracks(playlist_id: int) -> List[Track]:
         """Get all tracks in a playlist"""
         try:
             with get_session() as session:
+                # Prevent expiration so we can use objects after session closes
+                session.expire_on_commit = False 
                 return session.query(Track).join(
                     PlaylistTrack, Track.id == PlaylistTrack.track_id
                 ).filter(

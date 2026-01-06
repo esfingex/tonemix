@@ -44,7 +44,15 @@ class DatabaseManager:
                 db_path = Path(__file__).parent.parent.parent / db_config.get('name', 'tonemix.db')
                 url = f"sqlite:///{db_path}"
                 self._engine = create_engine(url, echo=False)
-                logger.info(f"SQLite engine created at {db_path}")
+                
+                @event.listens_for(self._engine, "connect")
+                def set_sqlite_pragma(dbapi_connection, connection_record):
+                    cursor = dbapi_connection.cursor()
+                    cursor.execute("PRAGMA foreign_keys=ON")
+                    cursor.execute("PRAGMA journal_mode=WAL")
+                    cursor.close()
+                    
+                logger.info(f"SQLite engine created at {db_path} (FK support enabled)")
             else: # Default to PostgreSQL
                 user = db_config.get('user', 'postgres')
                 password = db_config.get('password', '')

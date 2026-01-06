@@ -199,6 +199,15 @@ class DeckWidget(QWidget):
             ms = int(position * self.current_track.duration_seconds * 1000)
             self.player.set_position(ms)
 
+    def play_pause(self):
+        """Toggle playback"""
+        self.player.toggle_playback()
+    
+    def cue_track(self):
+        """Set or jump to cue (simplified: stop and seek to start)"""
+        self.player.stop()
+        self.player.set_position(0)
+
     def _on_player_position_changed(self, ms: int):
         """Update waveform playhead"""
         if self.current_track and self.current_track.duration_seconds > 0:

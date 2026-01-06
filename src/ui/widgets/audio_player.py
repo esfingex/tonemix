@@ -79,7 +79,15 @@ class AudioPlayer(QWidget):
             self.player.pause()
         else:
             self.player.play()
-    
+            
+    def toggle_playback(self):
+        """Public method to toggle playback"""
+        self._toggle_play()
+        
+    def set_position(self, ms: int):
+        """Set position in milliseconds"""
+        self.player.setPosition(ms)
+
     def _seek(self, position):
         """Seek to position"""
         self.player.setPosition(position)

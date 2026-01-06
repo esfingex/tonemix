@@ -19,8 +19,12 @@ from src.ui.models import TrackTableModel, Track
 from src.database.repository import TrackRepository, PlaylistRepository
 from src.core.analyzer import AudioAnalyzer
 from src.core.audio_processor import AudioProcessor
+from src.core.transcoder import AudioTranscoder
+from src.core.transcoder import AudioTranscoder
 from src.export.rekordbox_exporter import RekordboxExporter
-from src.ui.dialogs.waveform_preferences import WaveformPreferencesDialog
+from src.ui.dialogs.preferences import PreferencesDialog
+from src.utils.config import config
+from PySide6.QtGui import QKeySequence, QShortcut
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +83,61 @@ class AnalysisWorker(QThread):
             self.error.emit(str(e))
 
 
+class TranscodeWorker(QThread):
+    """Worker thread for transcoding"""
+    
+    progress = Signal(int, int)  # current, total
+    file_transcoded = Signal(int, str)  # original_track_id, new_file_path
+    finished = Signal()
+    error = Signal(str)
+    
+    def __init__(self, track_files: dict, output_dir: str):
+        """
+        Args:
+            track_files: Dict {track_id: input_path}
+            output_dir: Destination directory
+        """
+        super().__init__()
+        self.track_files = track_files
+        self.output_dir = output_dir
+        self.transcoder = AudioTranscoder()
+        self._is_running = True
+        
+    def run(self):
+        """Run transcoding"""
+        total = len(self.track_files)
+        current = 0
+        
+        for track_id, input_path in self.track_files.items():
+            if not self._is_running:
+                break
+                
+            try:
+                # Transcode logic
+                # Determine output filename
+                input_file = Path(input_path)
+                output_path = str(Path(self.output_dir) / f"{input_file.stem}.aiff")
+                
+                result = self.transcoder.transcode_to_aiff(input_path, output_path)
+                
+                if result:
+                    self.file_transcoded.emit(track_id, result)
+                else:
+                    self.error.emit(f"Failed to transcode {input_file.name}")
+                    
+                current += 1
+                self.progress.emit(current, total)
+                
+            except Exception as e:
+                logger.error(f"Transcode error for {input_path}: {e}")
+                self.error.emit(f"Error transcoding {Path(input_path).name}: {e}")
+                
+        self.finished.emit()
+    
+    def stop(self):
+        self._is_running = False
+
+
 class MainWindow(QMainWindow):
     """Main application window"""
     
@@ -92,6 +151,10 @@ class MainWindow(QMainWindow):
         self.audio_processor = AudioProcessor()
         self.repository = TrackRepository()
         self.exporter = RekordboxExporter()
+        
+        # Shortcuts
+        self._shortcuts = []
+        self._setup_shortcuts()
         
         # Analysis worker
         self.analysis_worker = None
@@ -157,9 +220,9 @@ class MainWindow(QMainWindow):
         
         view_menu.addSeparator()
         
-        waveform_settings_action = QAction("Waveform Settings...", self)
-        waveform_settings_action.triggered.connect(self._show_waveform_settings)
-        view_menu.addAction(waveform_settings_action)
+        settings_action = QAction("&Preferences...", self)
+        settings_action.triggered.connect(self._show_preferences)
+        view_menu.addAction(settings_action)
         
         # Create menu
         menu = QMenu(self)
@@ -233,14 +296,19 @@ class MainWindow(QMainWindow):
         
         # Sidebar (Left)
         self.sidebar = Sidebar()
-        self.sidebar.playlist_created.connect(self._on_playlist_created)
+        # Connect sidebar signals
+        self.sidebar.playlist_selected.connect(self._on_sidebar_item_selected)
         self.sidebar.item_selected.connect(self._on_sidebar_item_selected)
+        self.sidebar.playlist_created.connect(self._on_playlist_created)
+        self.sidebar.add_tracks_requested.connect(self._add_tracks_to_playlist_dialog)
         self.sidebar.tracks_dropped.connect(self._add_tracks_to_playlist)
         self.main_splitter.addWidget(self.sidebar)
         
         # Track Table (Right)
         self.table_view = LibraryTableView()
         self.table_view.load_to_deck_requested.connect(self._load_track)
+        # Connect drag & drop signal
+        self.table_view.files_dropped.connect(self._import_dropped_files)
         self.table_model = TrackTableModel()
         self.table_view.setModel(self.table_model)
         
@@ -257,6 +325,7 @@ class MainWindow(QMainWindow):
         # Connect signals
         self.table_view.track_double_clicked.connect(self._on_table_double_clicked)
         self.table_view.analyze_requested.connect(self._on_analyze_requested)
+        self.table_view.transcode_requested.connect(self._on_transcode_requested)  # New connection
         self.table_view.export_requested.connect(self._on_export_requested)
         self.table_view.delete_requested.connect(self._on_delete_requested)
         self.table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
@@ -281,19 +350,24 @@ class MainWindow(QMainWindow):
             playlist_id = item.data(0, Qt.UserRole + 1)
             if playlist_id:
                 logger.info(f"Loading tracks from playlist {playlist_id}")
+                self._current_playlist_id = playlist_id  # Set current ID
                 self._filter_by_playlist(playlist_id)
             else:
                 logger.warning("Playlist has no ID")
+                self._current_playlist_id = None
         elif item_type == "root_playlists":
             # Clear table when clicking on Playlists root
+            self._current_playlist_id = None
             self.table_model.set_tracks([])
             self.status_bar.showMessage("Select a playlist to view tracks")
         elif item_type == "root_devices":
             # Select root devices
+            self._current_playlist_id = None
             self.table_model.set_tracks([])
             self.status_bar.showMessage("Select a specific device to view tracks")
         elif item_type == "device":
             # Load tracks from device
+            self._current_playlist_id = None
             mount_point = item.data(0, Qt.UserRole + 1)
             self._load_device_tracks(mount_point)
 
@@ -512,8 +586,130 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 logger.error(f"Error importing {file_path}: {e}")
         
-        self.track_count_label.setText(f"{self.table_model.rowCount()} tracks")
         self.status_bar.showMessage(f"Imported {imported_count} new tracks")
+
+    def _import_files_generic(self, file_paths: list, target_playlist_id: int = None):
+        """Generic import logic used by all import methods"""
+        from src.database.models import Track
+        
+        valid_extensions = {'.mp3', '.wav', '.aiff', '.flac', '.m4a'}
+        valid_files = [f for f in file_paths if Path(f).suffix.lower() in valid_extensions]
+        
+        if not valid_files:
+            return
+            
+        imported_count = 0
+        added_to_playlist_count = 0
+        imported_ids = []
+        
+        # Valid keys for Track model
+        valid_keys = {c.name for c in Track.__table__.columns}
+        
+        for file_path in valid_files:
+            try:
+                # Check if already exists
+                existing = self.repository.get_by_path(file_path)
+                track_id = None
+                
+                if existing:
+                    track_id = existing.id
+                else:
+                    # Get basic audio info
+                    audio_info = self.audio_processor.get_audio_info(file_path)
+                    audio_info.pop('channels', None)
+                    audio_info.pop('subtype', None)
+                    
+                    # Create track data
+                    track_data = {
+                        'title': Path(file_path).stem,
+                        'file_path': file_path,
+                        'artist': 'Unknown Artist',
+                        **audio_info
+                    }
+                    
+                    # Filter keys
+                    track_data = {k: v for k, v in track_data.items() if k in valid_keys}
+                    
+                    # Create track
+                    track = self.repository.create(track_data)
+                    if track:
+                        self.table_model.add_track(track)
+                        track_id = track.id
+                        imported_count += 1
+                
+                if track_id:
+                    imported_ids.append(track_id)
+                    # Add to target playlist if specified
+                    if target_playlist_id:
+                        if PlaylistRepository.add_track(target_playlist_id, track_id):
+                            added_to_playlist_count += 1
+                            
+            except Exception as e:
+                logger.error(f"Error importing {file_path}: {e}")
+        
+        # Refresh UI if added to CURRENT playlist
+        if target_playlist_id and self._current_playlist_id == target_playlist_id:
+            self._load_tracks(playlist_id=target_playlist_id)
+        else:
+             self.track_count_label.setText(f"{self.table_model.rowCount()} tracks")
+            
+        msg = f"Processed {len(valid_files)} files."
+        if imported_count > 0:
+            msg += f" Imported {imported_count} new."
+        if added_to_playlist_count > 0:
+            msg += f" Added {added_to_playlist_count} to playlist."
+            
+        self.status_bar.showMessage(msg)
+        
+        # Trigger analysis for NEW tracks only to avoid re-analyzing
+        # Or analyze all if requested? Let's analyze new ones.
+        # Ideally we analyze all imported_ids that lack analysis.
+        # efficient approach:
+        to_analyze = []
+        for tid in imported_ids:
+             t = self.repository.get_by_id(tid)
+             if t and not t.bpm: # Assume if BPM missing, needs analysis
+                 to_analyze.append(t.file_path)
+        
+        if to_analyze:
+             self._start_analysis(to_analyze)
+
+    def _import_files(self):
+        """Import audio files via dialog"""
+        file_paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Import Audio Files",
+            str(Path.home()),
+            "Audio Files (*.mp3 *.wav *.aiff *.flac *.m4a)"
+        )
+        if file_paths:
+            self._import_files_generic(file_paths)
+            
+    def _import_folder(self):
+        """Import audio files from folder"""
+        folder_path = QFileDialog.getExistingDirectory(self, "Import Folder")
+        if folder_path:
+            file_paths = []
+            for ext in ['*.mp3', '*.wav', '*.aiff', '*.flac', '*.m4a']:
+                file_paths.extend([str(p) for p in Path(folder_path).rglob(ext)])
+            
+            if file_paths:
+                self._import_files_generic(file_paths)
+
+    def _import_dropped_files(self, file_paths):
+        """Handle dropped files"""
+        self._import_files_generic(file_paths, target_playlist_id=self._current_playlist_id)
+
+    def _add_tracks_to_playlist_dialog(self, playlist_id):
+        """Add tracks to playlist from files"""
+        file_paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Add Tracks to Playlist",
+            str(Path.home()),
+            "Audio Files (*.mp3 *.wav *.aiff *.flac *.m4a)"
+        )
+        if file_paths:
+            self._import_files_generic(file_paths, target_playlist_id=playlist_id)
         
     def _start_analysis(self, file_paths: list):
         """Start analysis worker"""
@@ -602,6 +798,125 @@ class MainWindow(QMainWindow):
         """Analysis error"""
         logger.error(f"Analysis error: {error}")
         self.status_bar.showMessage(f"Error: {error}", 5000)
+
+    # ==========================
+    # Transcode Workflow
+    # ==========================
+
+    def _on_transcode_requested(self, track_ids: list):
+        """Handle transcode request"""
+        if not track_ids:
+            return
+            
+        # Select Output Directory
+        output_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory")
+        if not output_dir:
+            return
+            
+        # Prepare files
+        track_files = {}
+        for track_id in track_ids:
+            track = self.repository.get_by_id(track_id)
+            if track and track.file_path:
+                track_files[track.id] = track.file_path
+        
+        if not track_files:
+            return
+            
+        # Start Worker
+        self.transcode_worker = TranscodeWorker(track_files, output_dir)
+        self.transcode_worker.progress.connect(self._on_transcode_progress)
+        self.transcode_worker.finished.connect(self._on_transcode_finished)
+        self.transcode_worker.file_transcoded.connect(self._on_file_transcoded)
+        self.transcode_worker.error.connect(self._on_analysis_error)
+        
+        self.status_bar.showMessage(f"Transcoding {len(track_files)} tracks...")
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setMaximum(len(track_files))
+        self.progress_bar.setValue(0)
+        
+        # Reset tracking list
+        self.transcoded_results = [] # List of new file paths
+        
+        self.transcode_worker.start()
+        
+    def _on_transcode_progress(self, current, total):
+        self.progress_bar.setValue(current)
+        self.status_bar.showMessage(f"Transcoding: {current}/{total}")
+        
+    def _on_file_transcoded(self, original_id, new_path):
+        self.transcoded_results.append(new_path)
+        logger.info(f"Transcoded: {new_path}")
+        
+    def _on_transcode_finished(self):
+        self.progress_bar.setVisible(False)
+        self.status_bar.showMessage(f"Transcoding complete. {len(self.transcoded_results)} files created.", 5000)
+        
+        if not self.transcoded_results:
+            return
+
+        # Ask to create playlist
+        from PySide6.QtWidgets import QMessageBox as QMsgBox, QInputDialog
+        reply = QMsgBox.question(self, "Transcoding Complete", 
+                                   f"Successfully converted {len(self.transcoded_results)} tracks.\n\n"
+                                   "Do you want to create a new playlist with these tracks?",
+                                   QMsgBox.Yes | QMsgBox.No)
+                                   
+        if reply == QMsgBox.Yes:
+            from datetime import datetime
+            default_name = f"Transcoded {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            name, ok = QInputDialog.getText(self, "New Playlist", "Playlist Name:", text=default_name)
+            
+            if ok and name:
+                self._import_transcoded_to_playlist(name, self.transcoded_results)
+    
+    def _import_transcoded_to_playlist(self, playlist_name, file_paths):
+        """Import transcoded files and add to playlist"""
+        # 1. Create Playlist
+        playlist = PlaylistRepository.create(playlist_name)
+        if not playlist:
+            QMessageBox.critical(self, "Error", "Failed to create playlist")
+            return
+        
+        added_ids = []
+        for path in file_paths:
+            # Check if already exists
+            existing = self.repository.get_by_path(path)
+            if existing:
+                added_ids.append(existing.id)
+            else:
+                try:
+                    track_data = {
+                        'title': Path(path).stem,
+                        'file_path': path,
+                        'bpm': 0, 'energy_level': 0, 'key_camelot': '', 'duration_seconds': 0
+                    }
+                    # Filter keys
+                    from src.database.models import Track
+                    valid_keys = {c.name for c in Track.__table__.columns}
+                    track_data = {k: v for k, v in track_data.items() if k in valid_keys}
+                    
+                    new_track = self.repository.create(track_data)
+                    if new_track:
+                        added_ids.append(new_track.id)
+                        self.table_model.add_track(new_track)
+                except Exception as e:
+                    logger.error(f"Error creating track for {path}: {e}")
+        
+        # 3. Add to Playlist
+        count = 0
+        for tid in added_ids:
+            if PlaylistRepository.add_track(playlist.id, tid):
+                count += 1
+                
+        # 4. Refresh Sidebar
+        self.sidebar.reload_playlists()
+        
+        # 5. Trigger Analysis (Background)
+        if added_ids:
+            self._start_analysis([path for path in file_paths])
+            
+        QMessageBox.information(self, "Success", f"Created playlist '{playlist_name}' with {count} tracks.")
     
     def _on_track_double_clicked(self, track_id: int):
         """Load track waveform"""
@@ -748,7 +1063,7 @@ class MainWindow(QMainWindow):
             from src.database.repository import PlaylistRepository
             for t_id in track_ids:
                 PlaylistRepository.remove_track(self._current_playlist_id, t_id)
-            self._load_playlist_tracks(self._current_playlist_id) # Refresh
+            self._filter_by_playlist(self._current_playlist_id) # Refresh
         else:
             # Delete from library
             for t_id in track_ids:
@@ -815,50 +1130,97 @@ class MainWindow(QMainWindow):
             "<p><a href='https://github.com/esfingex/tonemix'>GitHub Repository</a></p>"
         )
     
-    def _show_waveform_settings(self):
-        """Show waveform preferences dialog"""
-        from src.ui.dialogs.waveform_preferences import WaveformPreferencesDialog
-        from PySide6.QtCore import QSettings
+    def _show_preferences(self):
+        """Show preferences dialog"""
+        dialog = PreferencesDialog(self)
         
-        dialog = WaveformPreferencesDialog(self)
-        
-        # Load saved preferences
-        settings = QSettings("ToneMix", "ToneMixPro")
-        prefs = {
-            'color_scheme': settings.value("waveform/color_scheme", 0, type=int),
-            'show_artwork': settings.value("waveform/show_artwork", True, type=bool),
-            'show_key': settings.value("waveform/show_key", True, type=bool),
-            'show_bpm': settings.value("waveform/show_bpm", True, type=bool),
-            'show_beat_grid': settings.value("waveform/show_beat_grid", False, type=bool),
-            'intensity': settings.value("waveform/intensity", 1.0, type=float)
-        }
-        dialog.set_preferences(prefs)
-        
-        # Connect to apply changes
-        dialog.preferences_changed.connect(self._apply_waveform_preferences)
-        
+        # Connect signals
+        dialog.preferences_changed.connect(self._on_preferences_changed)
+        dialog.shortcuts_changed.connect(self._on_shortcuts_changed)
         dialog.exec_()
-    
-    def _apply_waveform_preferences(self, prefs):
-        """Apply waveform preferences"""
-        from PySide6.QtCore import QSettings
+
+    def _on_preferences_changed(self, prefs):
+        """Handle preference changes"""
+        # Save to config if needed or handled by generic saving
+        pass
         
-        # Save preferences
-        settings = QSettings("ToneMix", "ToneMixPro")
-        settings.setValue("waveform/color_scheme", prefs['color_scheme'])
-        settings.setValue("waveform/show_artwork", prefs['show_artwork'])
-        settings.setValue("waveform/show_key", prefs['show_key'])
-        settings.setValue("waveform/show_bpm", prefs['show_bpm'])
-        settings.setValue("waveform/show_beat_grid", prefs['show_beat_grid'])
-        settings.setValue("waveform/intensity", prefs['intensity'])
-        
-        # Apply to waveform widgets
+        # Apply to decks
         if hasattr(self, 'deck_a'):
             self.deck_a.waveform.set_preferences(prefs)
         if hasattr(self, 'deck_b'):
             self.deck_b.waveform.set_preferences(prefs)
+            
+        logger.info(f"Preferences applied: {prefs}")
         
-        logger.info(f"Waveform preferences applied: {prefs}")
+    def _on_shortcuts_changed(self, shortcuts):
+        """Handle shortcuts update"""
+        # Config already saved by Dialog
+        self._setup_shortcuts()
+        logger.info("Shortcuts updated")
+        
+    def _setup_shortcuts(self):
+        """Setup keyboard shortcuts"""
+        # Clear existing
+        for s in self._shortcuts:
+            s.setEnabled(False)
+            s.setParent(None)
+        self._shortcuts.clear()
+        
+        # Get config
+        shortcuts = config.shortcuts
+        defaults = {
+            "play_deck_a": "Space",
+            "play_deck_b": "Ctrl+Space",
+            "cue_deck_a": "C",
+            "cue_deck_b": "Ctrl+C",
+            "load_deck_a": "Ctrl+1",
+            "load_deck_b": "Ctrl+2",
+            "delete_from_playlist": "Delete",
+            "analyze_selected": "Ctrl+A",
+            "transcode_selected": "Ctrl+T"
+        }
+        
+        # Merge
+        active_shortcuts = defaults.copy()
+        active_shortcuts.update(shortcuts)
+        
+        # Map IDs to methods
+        actions = {
+            "play_deck_a": lambda: self.deck_a.play_pause() if hasattr(self, 'deck_a') else None,
+            "play_deck_b": lambda: self.deck_b.play_pause() if hasattr(self, 'deck_b') else None,
+            "cue_deck_a": lambda: self.deck_a.cue_track() if hasattr(self, 'deck_a') else None,
+            "cue_deck_b": lambda: self.deck_b.cue_track() if hasattr(self, 'deck_b') else None,
+            "load_deck_a": self._load_to_deck_a,
+            "load_deck_b": self._load_to_deck_b,
+            "delete_from_playlist": self._on_delete_requested_shortcut,
+            "analyze_selected": self._analyze_selected_tracks_shortcut,
+            "transcode_selected": self._transcode_selected_shortcut
+        }
+        
+        for action_id, key_seq in active_shortcuts.items():
+            if not key_seq:
+                continue
+            
+            if action_id in actions:
+                shortcut = QShortcut(QKeySequence(key_seq), self)
+                shortcut.activated.connect(actions[action_id])
+                self._shortcuts.append(shortcut)
+
+    def _on_delete_requested_shortcut(self):
+        # Trigger delete on table selection
+        ids = self.table_view.get_selected_track_ids()
+        if ids:
+            self._on_delete_requested(ids)
+
+    def _transcode_selected_shortcut(self):
+        ids = self.table_view.get_selected_track_ids()
+        if ids:
+            self._on_transcode_requested(ids)
+            
+    def _analyze_selected_tracks_shortcut(self):
+        ids = self.table_view.get_selected_track_ids()
+        if ids:
+             self._on_analyze_requested(ids)
     
     def _restore_settings(self):
         """Restore UI settings from previous session"""

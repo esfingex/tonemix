@@ -115,7 +115,10 @@ class LibraryTableView(QTableView):
     load_to_deck_requested = Signal(int, str)  # track_id, deck_id
     transcode_requested = Signal(list)  # list of track_ids
     export_requested = Signal(list)  # list of track_ids
+    transcode_requested = Signal(list)  # list of track_ids
+    export_requested = Signal(list)  # list of track_ids
     delete_requested = Signal(list)  # list of track_ids
+    files_dropped = Signal(list)  # list of file paths
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -128,8 +131,11 @@ class LibraryTableView(QTableView):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         
         # Enable drag
+        # Enable drag and drop
         self.setDragEnabled(True)
-        self.setDragDropMode(QTableView.DragOnly)
+        self.setAcceptDrops(True)
+        self.setDragDropMode(QTableView.DragDrop)
+        self.setDropIndicatorShown(True)
         
         # Setup headers
         self.horizontalHeader().setStretchLastSection(True)
@@ -170,7 +176,46 @@ class LibraryTableView(QTableView):
         if (event.pos() - self._drag_start_pos).manhattanLength() < QApplication.startDragDistance():
             return
             
+        if (event.pos() - self._drag_start_pos).manhattanLength() < QApplication.startDragDistance():
+            return
+            
         self.startDrag(Qt.CopyAction)
+
+    def keyPressEvent(self, event):
+        """Handle key press events"""
+        if event.key() == Qt.Key_Delete:
+            selected_ids = self.get_selected_track_ids()
+            if selected_ids:
+                self.delete_requested.emit(selected_ids)
+        else:
+            super().keyPressEvent(event)
+
+    def dragEnterEvent(self, event):
+        """Handle drag enter"""
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            super().dragEnterEvent(event)
+            
+    def dragMoveEvent(self, event):
+        """Handle drag move"""
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            super().dragMoveEvent(event)
+            
+    def dropEvent(self, event):
+        """Handle drop event"""
+        if event.mimeData().hasUrls():
+            event.accept()
+            files = []
+            for url in event.mimeData().urls():
+                files.append(url.toLocalFile())
+            
+            if files:
+                self.files_dropped.emit(files)
+        else:
+            super().dropEvent(event)
 
     def _on_double_click(self, index: QModelIndex):
         """Handle double click"""

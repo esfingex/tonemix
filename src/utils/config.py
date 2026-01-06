@@ -100,6 +100,39 @@ class Config:
     def export(self) -> Dict[str, Any]:
         """Get export configuration"""
         return self._config.get('export', {})
+        
+    @property
+    def shortcuts(self) -> Dict[str, str]:
+        """Get shortcuts configuration"""
+        return self._config.get('shortcuts', {})
+
+    def set(self, key: str, value: Any):
+        """
+        Set configuration value using dot notation
+        
+        Args:
+            key: Configuration key (e.g., 'ui.theme')
+            value: Value to set
+        """
+        keys = key.split('.')
+        current = self._config
+        
+        for k in keys[:-1]:
+            if k not in current:
+                current[k] = {}
+            current = current[k]
+            
+        current[keys[-1]] = value
+        
+    def save(self):
+        """Save configuration to config.yaml"""
+        config_path = Path(__file__).parent.parent.parent / "config.yaml"
+        try:
+            with open(config_path, 'w') as f:
+                yaml.dump(self._config, f, default_flow_style=False)
+        except Exception as e:
+            # Need logger here
+            print(f"Error saving config: {e}")
 
 
 # Singleton instance
