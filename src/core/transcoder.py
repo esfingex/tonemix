@@ -65,7 +65,8 @@ class AudioTranscoder:
             # So we tell FFmpeg to STRIP all metadata to prevent crashes with large covers
             if self.preserve_metadata:
                 if format in ['aiff', 'wav']:
-                    cmd.extend(['-map_metadata', '-1']) # Strip metadata in FFmpeg
+                    # Strip metadata but force simpler ID3v2 chunk creation for Mutagen compat
+                    cmd.extend(['-map_metadata', '-1', '-write_id3v2', '1']) 
                 else:
                     cmd.extend(['-map_metadata', '0']) # Keep for others (mp3/flac)
             
@@ -165,29 +166,45 @@ class AudioTranscoder:
         """
         Copy tags and artwork from source to destination with resizing
         """
+        logger.info(f"START copy_metadata_and_artwork: {source_path} -> {dest_path}")
         try:
             from PIL import Image
             import io
             
-            source = File(source_path)
-            dest = File(dest_path)
+            try:
+                source = File(source_path)
+            except Exception as e:
+                logger.error(f"Error opening source: {e}")
+                return False
+                
+            # Force specific handler for AIFF to avoid auto-detection fails
+            dest = None
+            if dest_path.lower().endswith(('.aiff', '.aif')):
+                try:
+                    dest = AIFF(dest_path)
+                except Exception as e:
+                    logger.warning(f"AIFF open failed, trying File: {e}")
+            elif dest_path.lower().endswith('.wav'):
+                try:
+                    dest = WAVE(dest_path)
+                except Exception as e:
+                    logger.warning(f"WAVE open failed, trying File: {e}")
             
-            if not source or not dest:
+            if not dest:
+                dest = File(dest_path)
+            
+            if not source:
+                logger.error("Source file could not be opened by Mutagen")
+                return False
+            if not dest:
+                logger.error("Dest file could not be opened by Mutagen")
                 return False
                 
             # Ensure dest has tags
             if dest.tags is None:
+                logger.info("Adding ID3 chunk to destination")
                 dest.add_tags()
                 
-            # Copy basic tags
-            tag_map = {
-                'title': TIT2,
-                'artist': TPE1,
-                'album': TALB,
-                'date': TDRC,
-                'genre': lambda v: from_str(v) if 'from_str' in globals() else None # Placeholder
-            }
-            
             # Helper to find key case-insensitively
             def get_tag_value(src, key_name):
                 # Try exact match
@@ -218,12 +235,14 @@ class AudioTranscoder:
             if hasattr(source, 'pictures') and source.pictures:
                 pic_data = source.pictures[0].data
                 mime = source.pictures[0].mime
+                logger.info(f"Found FLAC picture: {len(pic_data)} bytes")
             # Extract from ID3
             elif hasattr(source, 'tags'):
                 for tag in source.tags.values():
                     if tag.__class__.__name__ == 'APIC':
                         pic_data = tag.data
                         mime = tag.mime
+                        logger.info(f"Found ID3 picture: {len(pic_data)} bytes")
                         break
             
             if pic_data:
@@ -258,10 +277,9 @@ class AudioTranscoder:
                     
                 except Exception as img_err:
                     logger.warning(f"Failed to process artwork image: {img_err}")
-                    # Fallback: try copying raw data if resize failed? 
-                    # Probably better to skip to avoid crash
             
             dest.save()
+            logger.info(f"Metadata copied successfully to {dest_path}")
             return True
             
         except Exception as e:

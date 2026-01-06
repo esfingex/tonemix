@@ -783,6 +783,10 @@ class MainWindow(QMainWindow):
                 'analyzed_at': datetime.utcnow()
             }
             
+            # Add artwork if available from analysis
+            if hasattr(analysis, 'artwork') and analysis.artwork:
+                analysis_data['artwork_thumbnail'] = analysis.artwork
+            
             if existing_track:
                 # Update existing track
                 updated_track = self.repository.update(existing_track.id, analysis_data)

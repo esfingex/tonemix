@@ -31,7 +31,9 @@ class TrackAnalysis:
     bpm: float
     energy_level: float
     duration_seconds: float
+
     waveform_data: np.ndarray
+    artwork: Optional[bytes] = None
 
 
 class AudioAnalyzer:
@@ -74,13 +76,18 @@ class AudioAnalyzer:
             audio_processor = self.audio_processor
             waveform = audio_processor.generate_spectral_waveform(audio, sr)
             
+            # Extract artwork
+            artwork = audio_processor.extract_artwork(file_path)
+            
             result = TrackAnalysis(
                 key_musical=key_musical,
                 key_camelot=key_camelot,
                 bpm=bpm,
                 energy_level=energy,
+
                 duration_seconds=duration,
-                waveform_data=waveform
+                waveform_data=waveform,
+                artwork=artwork
             )
             
             logger.info(f"Analysis complete: Key={key_camelot}, BPM={bpm:.1f}, Energy={energy:.1f}")

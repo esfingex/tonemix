@@ -2,14 +2,18 @@
 Collapsible sidebar for navigation
 """
 from PySide6.QtWidgets import (QTreeWidget, QTreeWidgetItem, QWidget, QVBoxLayout,
-                                QMenu, QInputDialog, QMessageBox, QStyle)
+                                QMenu, QInputDialog, QMessageBox, QStyle, QDialog,
+                                QCheckBox, QDialogButtonBox, QLabel)
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap, QImage, QColor, QPainter
 import logging
 import psutil
 from src.ui.utils.icons import get_icon
-from src.database.repository import PlaylistRepository
+from src.database.repository import PlaylistRepository, TrackRepository
 from src.utils.security import validate_playlist_name
+from src.ui.dialogs import DeletePlaylistDialog
+import os
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -273,12 +277,51 @@ class Sidebar(QWidget):
                 self.reload_playlists()
 
     def _delete_playlist(self, playlist_id, name):
-        reply = QMessageBox.question(self, "Delete Playlist", 
-                                   f"Are you sure you want to delete playlist '{name}'?",
-                                   QMessageBox.Yes | QMessageBox.No)
-        if reply == QMessageBox.Yes:
-            if PlaylistRepository.delete(playlist_id):
-                self.reload_playlists()
+        """Confirm and delete playlist"""
+        dialog = DeletePlaylistDialog(name, self)
+        if dialog.exec_() == QDialog.Accepted:
+            
+            # Check if we should delete files
+            if dialog.should_delete_files():
+                try:
+                    # Get all tracks in playlist
+                    tracks = PlaylistRepository.get_tracks(playlist_id)
+                    deleted_files = 0
+                    
+                    for track in tracks:
+                        path = track.file_path
+                        # Delete from DB (Track) - this should cascade to PlaylistTrack
+                        # Note: If track is used in other playlists, it will be removed from them too
+                        # because we are deleting the Asset.
+                        if TrackRepository.delete(track.id):
+                            # Delete from Disk
+                            try:
+                                if os.path.exists(path):
+                                    os.remove(path)
+                                    deleted_files += 1
+                            except Exception as e:
+                                logger.error(f"Error deleting file {path}: {e}")
+                    
+                    # Finally delete playlist
+                    PlaylistRepository.delete(playlist_id)
+                    self.reload_playlists()
+                    
+                    if deleted_files > 0:
+                        QMessageBox.information(self, "Deleted", 
+                                              f"Deleted playlist '{name}' and {deleted_files} audio files from disk.")
+                    else:
+                        QMessageBox.warning(self, "Warning",
+                                          f"Deleted playlist '{name}' but could not delete files (or none found).")
+                                          
+                except Exception as e:
+                    logger.error(f"Delete error: {e}")
+                    QMessageBox.critical(self, "Error", f"Failed to delete: {e}")
+            else:
+                # Standard delete (Playlist only)
+                if PlaylistRepository.delete(playlist_id):
+                    self.reload_playlists()
+
+
 
     def reload_playlists(self):
         """Reload all playlists from database"""
