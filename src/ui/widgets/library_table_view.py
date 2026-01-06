@@ -28,9 +28,9 @@ class ArtworkDelegate(QStyledItemDelegate):
             
         # Draw image
         if not pixmap.isNull():
-            # Center vertically
+            # Center image in cell (both H and V)
             size = min(option.rect.height() - 4, 90)
-            x = option.rect.x() + 5
+            x = option.rect.x() + (option.rect.width() - size) // 2
             y = option.rect.y() + (option.rect.height() - size) // 2
             
             target_rect = QRect(x, y, size, size)

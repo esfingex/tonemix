@@ -46,6 +46,8 @@ class AudioTranscoder:
             cmd = [
                 self.ffmpeg_path,
                 '-i', input_path,
+                '-vn',       # Ignore video/artwork streams (prevents crashes with bad covers)
+                '-map', '0:a:0', # Select first audio stream only
             ]
             
             # Format specific settings
