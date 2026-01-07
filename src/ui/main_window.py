@@ -175,6 +175,7 @@ class MainWindow(QMainWindow):
         # State
         self._current_playlist_id = None
         self._current_device_path = None
+        self._is_loading_device = False
 
         # Setup UI
         self._create_menu_bar()
@@ -422,40 +423,137 @@ class MainWindow(QMainWindow):
             mount_point = item.data(0, Qt.UserRole + 1)
             self._current_device_path = mount_point
             self._load_device_tracks(mount_point)
+        elif item_type == "device_playlist_pdb":
+            # Load tracks from PDB playlist
+            self._current_playlist_id = None
+            playlist_id = item.data(0, Qt.UserRole + 1)
+            self._load_pdb_playlist(playlist_id, item)
+
+    def _load_pdb_playlist(self, playlist_id: int, item):
+        """Load tracks from a Rekordbox PDB playlist"""
+        from src.importer.pdb_importer import DeviceSqlImporter
+        from src.database.models import Track
+        import os
+        from pathlib import Path
+
+        # Find mount point from parent device item
+        parent = item.parent()
+        if not parent:
+            return
+        mount_point = parent.data(0, Qt.UserRole + 1)
+        if not mount_point:
+            return
+
+        pdb_path = Path(mount_point) / "PIONEER" / "Rekordbox" / "export.pdb"
+        if not pdb_path.exists():
+            self.status_bar.showMessage("Error: export.pdb not found")
+            return
+
+        try:
+            self.status_bar.showMessage(
+                f"Reading PDB Playlist {playlist_id}...")
+            importer = DeviceSqlImporter()
+            if importer.open(str(pdb_path)):
+                # Fetch raw track data
+                raw_tracks = importer.get_playlist_tracks(playlist_id)
+                importer.close()
+
+                # Convert to UI Track objects
+                ui_tracks = []
+                for rt in raw_tracks:
+                    title = rt.get('title', 'Unknown Track')
+                    artist = rt.get('artist', 'Unknown Artist')
+                    bpm = rt.get('bpm', 0.0)
+                    pdb_rpath = rt.get('path', '')
+
+                    real_path = ""
+                    if pdb_rpath:
+                        # Clean path: Remove "Y/" or "A/" prefix
+                        # e.g. Y/PIONEER/Music/Song.mp3 -> PIONEER/Music/Song.mp3
+                        parts = pdb_rpath.split('/', 1)
+                        # Drive letter check
+                        if len(parts) > 1 and len(parts[0]) <= 2:
+                            clean_rpath = parts[1]
+                        else:
+                            clean_rpath = pdb_rpath
+
+                        # Try to find file
+                        candidate = Path(mount_point) / clean_rpath
+                        if candidate.exists():
+                            real_path = str(candidate)
+                        else:
+                            # Fallback: try searching in PIONEER folder if relative path is weird
+                            pass
+
+                    t = Track(
+                        title=title,
+                        artist=artist,
+                        file_path=real_path
+                    )
+                    t.id = rt.get('id')  # Internal PDB ID
+                    t.bpm = bpm
+
+                    ui_tracks.append(t)
+
+                self.table_model.set_tracks(ui_tracks)
+                self.status_bar.showMessage(
+                    f"Loaded {len(ui_tracks)} tracks from PDB")
+                logger.info(
+                    f"Loaded {len(ui_tracks)} from PDB Playlist {playlist_id}")
+            else:
+                self.status_bar.showMessage("Failed to open PDB database")
+
+        except Exception as e:
+            logger.error(f"Error reading PDB playlist: {e}")
+            self.status_bar.showMessage("Error reading playlist")
 
     def _load_device_tracks(self, mount_point: str):
         """Load tracks from a device directory"""
         if not mount_point:
             return
 
+        if self._is_loading_device:
+            logger.warning(
+                "Already loading device tracks, skipping re-entrant call")
+            return
+
+        self._is_loading_device = True
+
         from pathlib import Path
         import os
         from src.database.models import Track
 
-        self.status_bar.showMessage(f"Scanning device: {mount_point}...")
-        self.table_model.set_tracks([])
-
-        # extensions to look for
-        valid_exts = {'.wav', '.mp3', '.aiff', '.aif', '.flac', '.m4a', '.aac'}
-        found_tracks = []
-
         try:
+            self.status_bar.showMessage(f"Scanning device: {mount_point}...")
+            # Ideally this should run in a thread, but for now we optimize the query
+
+            self.table_model.set_tracks([])
+
+            # extensions to look for
+            valid_exts = {'.wav', '.mp3', '.aiff',
+                          '.aif', '.flac', '.m4a', '.aac'}
+            found_tracks = []
+
             # 1. Walk directory to find files
             device_files = []
+            file_paths_to_check = []
+
             for root, dirs, files in os.walk(mount_point):
                 for file in files:
                     ext = os.path.splitext(file)[1].lower()
                     if ext in valid_exts:
                         full_path = str(Path(root) / file)
                         device_files.append((file, full_path, root))
+                        file_paths_to_check.append(full_path)
 
-            # 2. match with DB (Optimization: could Batch query, but for now loop)
-            # To avoid N+1 slow queries, let's get all tracks that might match?
-            # Or just check one by one. SQLite is fast enough for 200 tracks.
+            # 2. Batch match with DB
+            # Use get_by_paths to fetch all known tracks in one query
+            existing_tracks_map = self.repository.get_by_paths(
+                file_paths_to_check)
 
             for fname, fpath, froot in device_files:
-                # Check DB
-                existing = self.repository.get_by_path(fpath)
+                # Check Local Map
+                existing = existing_tracks_map.get(fpath)
 
                 if existing:
                     found_tracks.append(existing)
@@ -469,6 +567,12 @@ class MainWindow(QMainWindow):
                     )
                     # Set a temporary ID
                     track.id = None
+                    # Ensure None values for critical fields to avoid attribute errors
+                    track.bpm = 0.0
+                    track.key_camelot = ""
+                    track.rating = 0
+                    track.duration_seconds = 0
+                    track.artwork_thumbnail = None
                     found_tracks.append(track)
 
             self.table_model.set_tracks(found_tracks)
@@ -478,8 +582,10 @@ class MainWindow(QMainWindow):
                 f"Loaded {len(found_tracks)} tracks from device {mount_point}")
 
         except Exception as e:
-            logger.error(f"Error scanning device: {e}")
-            self.status_bar.showMessage(f"Error scanning device: {str(e)}")
+            logger.error(f"Error loading device tracks: {e}")
+            self.status_bar.showMessage(f"Error loading tracks: {str(e)}")
+        finally:
+            self._is_loading_device = False
 
     def _get_parent_folder_name(self, path):
         import os

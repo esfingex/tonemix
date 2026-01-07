@@ -49,6 +49,21 @@ class TrackRepository:
         except Exception as e:
             logger.error(f"Error getting track by path: {e}")
             return None
+
+    @staticmethod
+    def get_by_paths(file_paths: List[str]) -> Dict[str, Track]:
+        """Get multiple tracks by paths. Returns dict {path: Track}"""
+        if not file_paths:
+            return {}
+        try:
+            with get_session() as session:
+                # Process in chunks to avoid SQLite limits if necessary
+                tracks = session.query(Track).filter(Track.file_path.in_(file_paths)).all()
+                return {t.file_path: t for t in tracks}
+        except Exception as e:
+            logger.error(f"Error getting tracks by paths: {e}")
+            return {}
+
     
     @staticmethod
     def get_all(limit: int = None, offset: int = 0) -> List[Track]:

@@ -182,237 +182,54 @@ footer {
         </ul>
         <div style="margin-top: 2rem; font-size: 0.8rem; color: #666;">
             Version: 0.1.0<br>
-            Updated: 2026-01-05
+            Updated: 2026-01-06
         </div>
     </nav>
     <main class="main-content">
-        <h1 id="tonemix-pro">🎵 ToneMix Pro</h1>
-<p><strong>Professional Music Analysis Software for DJs and Producers</strong></p>
-<p>ToneMix is an open-source music analysis tool inspired by industry standards, designed for professional DJs and music producers. It provides advanced Music Information Retrieval (MIR) capabilities with a modern, intuitive interface.</p>
-<p><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg" />
-<img alt="Python" src="https://img.shields.io/badge/python-3.10+-blue.svg" />
-<img alt="Platform" src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg" /></p>
-<h2 id="features">✨ Features</h2>
-<h3 id="advanced-audio-analysis">🎼 Advanced Audio Analysis</h3>
+        <h1 id="tonemix-documentation">ToneMix Documentation</h1>
+<p>Welcome to the technical documentation for <strong>ToneMix</strong>, the advanced DJ library management tool.</p>
+<h2 id="overview">Overview</h2>
+<p>ToneMix is a Python-based application designed to bridge the gap between various DJ software and library formats. It offers a modern, dark-themed UI built with PySide6.</p>
+<h2 id="key-features">Key Features</h2>
 <ul>
-<li><strong>Key Detection</strong>: Accurate musical key detection in Camelot Wheel format (1A-12B)</li>
-<li><strong>BPM Detection</strong>: Precise tempo analysis using Essentia's RhythmExtractor</li>
-<li><strong>Energy Level</strong>: Calculated energy rating (0-10) based on RMS and Spectral Centroid</li>
-<li><strong>Waveform Visualization</strong>: Beautiful gradient waveforms with beat grid overlay</li>
+<li><strong>Library Management</strong>: scan and organize your local music collection.</li>
+<li><strong>Playlist Management</strong>: Create, rename, and delete playlists.</li>
+<li><strong>Audio Transcoding</strong>: Convert tracks between formats (AIFF, WAV, MP3, FLAC) preserving tags.</li>
+<li><strong>Device Integration</strong>: Seamlessly read from USB drives.</li>
 </ul>
-<h3 id="professional-dj-tools">🎚️ Professional DJ Tools</h3>
-<ul>
-<li><strong>Dual Deck Interface</strong>: Side-by-side waveform comparison for mashup creation</li>
-<li><strong>Harmonic Mixing</strong>: Camelot Wheel color-coding for compatible key matching</li>
-<li><strong>BPM Sync</strong>: Automatic tempo synchronization between tracks</li>
-<li><strong>Mashup Tools</strong>: Markers, idea filters, and project saving</li>
-</ul>
-<h3 id="format-support">🔄 Format Support</h3>
-<ul>
-<li><strong>Audio Formats</strong>: FLAC, AIFF, WAV, MP3, M4A</li>
-<li><strong>Transcoding</strong>: High-quality FLAC to AIFF 24-bit conversion</li>
-<li><strong>Metadata Preservation</strong>: Maintains ID3 tags during transcoding</li>
-<li><strong>Rekordbox Export</strong>: Generate compatible XML for Rekordbox import</li>
-</ul>
-<h3 id="library-management">📊 Library Management</h3>
-<ul>
-<li><strong>PostgreSQL Database</strong>: Robust storage for large music libraries</li>
-<li><strong>Smart Playlists</strong>: Filter by key, BPM, energy, and genre</li>
-<li><strong>Cover Art</strong>: Automatic album artwork display</li>
-<li><strong>Rating System</strong>: 5-star rating with visual feedback</li>
-</ul>
-<h2 id="installation">🚀 Installation</h2>
-<h3 id="prerequisites">Prerequisites</h3>
-<p>Before installing ToneMix, ensure you have the following:</p>
-<h4 id="required">Required</h4>
-<ul>
-<li><strong>Python 3.10+</strong>: <a href="https://www.python.org/downloads/">Download Python</a></li>
-<li><strong>FFmpeg</strong>: Required for audio transcoding (FLAC → AIFF)</li>
-</ul>
-<p>```bash
-  # Ubuntu/Debian
-  sudo apt install ffmpeg</p>
-<p># macOS
-  brew install ffmpeg
-  ```</p>
-<h4 id="optional">Optional</h4>
-<ul>
-<li><strong>Essentia</strong>: For advanced analysis (pip install essentia)</li>
-<li><strong>PostgreSQL</strong>: Optional, ToneMix uses SQLite by default.</li>
-</ul>
-<h3 id="quick-setup">Quick Setup</h3>
-<p>Use the automated setup script:</p>
-<pre><code class="language-bash"># Clone the repository
-git clone https://github.com/esfingex/tonemix.git
-cd tonemix
-
-# Run setup script
-./setup.sh
-
-# Run ToneMix
-./run.sh
-</code></pre>
-<h3 id="manual-setup">Manual Setup</h3>
-<p>If you prefer manual installation:</p>
+<h2 id="rekordbox-integration-new">🔌 Rekordbox Integration (New!)</h2>
+<p>ToneMix now features a native, high-performance integration with Rekordbox formatted USB drives.</p>
+<h3 id="pdb-import-features">PDB Import Features</h3>
 <ol>
-<li><strong>Clone the repository</strong></li>
+<li><strong>Direct PDB Parsing</strong>: Reads the binary <code>export.pdb</code> (DeviceSQL) file directly from the USB, bypassing the need for XML exports.</li>
+<li><strong>Universal Compatibility</strong>:<ul>
+<li>Implements a <strong>Dynamic Heuristic Scanner</strong> that automatically identifies internal database tables by analyzing their content.</li>
+<li>Works with any Rekordbox version, ignoring hardcoded Type IDs that may change.</li>
+</ul>
+</li>
+<li><strong>High Performance</strong>:<ul>
+<li>Uses <strong>Memory Mapping (<code>mmap</code>)</strong> for instant read access, even on large databases.</li>
+<li>Zero external dependencies (no C++ compilers required).</li>
+</ul>
+</li>
 </ol>
-<p><code>bash
-   git clone https://github.com/esfingex/tonemix.git
-   cd tonemix</code></p>
-<ol start="2">
-<li><strong>Create virtual environment</strong></li>
+<h3 id="how-to-use">How to Use</h3>
+<ol>
+<li>Connect your Rekordbox USB drive.</li>
+<li>Open the <strong>DEVICES</strong> section in the ToneMix sidebar.</li>
+<li>Click on your device (e.g., <code>IVIR_R1</code>).</li>
+<li>Browse your folders and playlists instantly.</li>
 </ol>
-<p><code>bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate</code></p>
-<ol start="3">
-<li><strong>Install Python dependencies</strong></li>
-</ol>
-<p><code>bash
-   pip install -r requirements.txt</code></p>
-<ol start="4">
-<li><strong>Create PostgreSQL database</strong></li>
-</ol>
-<p>```bash
-   # Switch to postgres user
-   sudo -u postgres psql</p>
-<p># In PostgreSQL prompt:
-   CREATE DATABASE tonemix;
-   CREATE USER tonemix_user WITH PASSWORD 'your_password';
-   GRANT ALL PRIVILEGES ON DATABASE tonemix TO tonemix_user;
-   \q
-   ```</p>
-<ol start="5">
-<li><strong>Configure environment</strong></li>
-</ol>
-<p>```bash
-   # Copy environment template
-   cp .env.example .env</p>
-<p># Edit .env with your database credentials
-   nano .env
-   ```</p>
-<p>Update these values in <code>.env</code>:</p>
-<p><code>env
-   DB_PASSWORD=your_password</code></p>
-<ol start="6">
-<li><strong>Run ToneMix</strong></li>
-</ol>
-<p><code>bash
-   python main.py</code></p>
-<h3 id="verifying-installation">Verifying Installation</h3>
-<p>When you run ToneMix for the first time, you should see:</p>
-<pre><code>🎵 ToneMix Pro v0.1.0
-============================================================
-📋 Configuration:
-  Database: localhost:5432/tonemix
-  ✅ Essentia available
-  ✅ FFmpeg available
-✅ ToneMix Pro is ready!
-</code></pre>
-<p>If you see warnings about missing components:</p>
+<h2 id="architecture">Architecture</h2>
+<p>ToneMix conforms to a clean, modular architecture:</p>
 <ul>
-<li><strong>Essentia not installed</strong>: <code>pip install essentia</code> (in venv)</li>
-<li><strong>FFmpeg not found</strong>: Install using instructions above</li>
-<li><strong>Database error</strong>: Check PostgreSQL is running and credentials are correct</li>
+<li><strong><code>src.ui</code></strong>: PySide6 widgets and main window logic.</li>
+<li><strong><code>src.database</code></strong>: SQLRepository pattern for data persistence.</li>
+<li><strong><code>src.importer</code></strong>: specialized modules for parsing formats (Rekordbox PDB, XML, Serato).</li>
+<li><strong><code>src.audio</code></strong>: FFMpeg wrappers for transcoding.</li>
 </ul>
-<h2 id="screenshots">🎨 Screenshots</h2>
-<p><em>Coming soon...</em></p>
-<h2 id="technology-stack">🛠️ Technology Stack</h2>
-<ul>
-<li><strong>Audio Analysis</strong>: Essentia, Librosa</li>
-<li><strong>UI Framework</strong>: PySide6 (Qt for Python)</li>
-<li><strong>Database</strong>: PostgreSQL with SQLAlchemy ORM</li>
-<li><strong>Transcoding</strong>: FFmpeg</li>
-<li><strong>Metadata</strong>: Mutagen</li>
-<li><strong>Rekordbox Integration</strong>: pyrekordbox</li>
-</ul>
-<h2 id="documentation">📖 Documentation</h2>
-<ul>
-<li><a href="docs/installation.md">Installation Guide</a></li>
-<li><a href="docs/user_manual.md">User Manual</a></li>
-<li><a href="docs/developer_guide.md">Developer Guide</a></li>
-<li><a href="docs/api_reference.md">API Reference</a></li>
-</ul>
-<h2 id="contributing">🤝 Contributing</h2>
-<p>Contributions are welcome! Please read our <a href="CONTRIBUTING.md">Contributing Guide</a> for details on our code of conduct and the process for submitting pull requests.</p>
-<h3 id="development-setup">Development Setup</h3>
-<pre><code class="language-bash"># Install development dependencies
-pip install -r requirements.txt
-
-# Run tests
-pytest
-
-# Format code
-black src/
-
-# Lint
-flake8 src/
-</code></pre>
-<h2 id="license">📝 License</h2>
-<p>This project is licensed under the MIT License - see the <a href="LICENSE">LICENSE</a> file for details.</p>
-<h2 id="acknowledgments">🙏 Acknowledgments</h2>
-<ul>
-<li>Inspired by professional DJ software aesthetics</li>
-<li>Built with <a href="https://essentia.upf.edu/">Essentia</a> for audio analysis</li>
-<li>UI design influenced by professional DJ software aesthetics</li>
-</ul>
-<h2 id="troubleshooting">🔧 Troubleshooting</h2>
-<h3 id="common-installation-issues">Common Installation Issues</h3>
-<p><strong>1. Essentia Version Not Found</strong>
-If you see an error like <code>No matching distribution found for essentia==...</code>:</p>
-<ul>
-<li>Edit <code>requirements.txt</code> and change the version to just <code>essentia</code> (to get the latest) or check available versions on PyPI.</li>
-<li>Alternatively, install slightly different version: <code>pip install essentia==2.1b6.dev1389</code></li>
-</ul>
-<p><strong>2. Database Connection Failed</strong></p>
-<ul>
-<li>Ensure PostgreSQL service is running: <code>sudo systemctl status postgresql</code></li>
-<li>Verify credentials in <code>.env</code> file match what you set up in PostgreSQL.</li>
-</ul>
-<p><strong>3. Audio Analysis Fails</strong></p>
-<ul>
-<li>Ensure FFmpeg is installed: <code>ffmpeg -version</code></li>
-<li>Check log output for specific error messages.</li>
-</ul>
-<h2 id="roadmap">🗺️ Roadmap</h2>
-<h3 id="phase-1-completed">Phase 1 ✅ COMPLETED</h3>
-<ul>
-<li>[x] Project structure and architecture</li>
-<li>[x] Core audio analysis engine (Essentia + Librosa)</li>
-<li>[x] Database models and repository (PostgreSQL + SQLAlchemy)</li>
-<li>[x] Complete UI with waveform visualization</li>
-<li>[x] Rekordbox XML export</li>
-<li>[x] Batch file analysis</li>
-<li>[x] FLAC to AIFF transcoding</li>
-</ul>
-<h3 id="phase-2-in-progress">Phase 2 (In Progress)</h3>
-<ul>
-<li>[ ] Dual deck interface for mashup creation</li>
-<li>[ ] Mashup tools and markers</li>
-<li>[ ] Advanced filtering and search</li>
-<li>[ ] Playlist management</li>
-<li>[ ] Keyboard shortcuts</li>
-<li>[ ] Performance optimizations</li>
-</ul>
-<h3 id="phase-3-planned">Phase 3 (Planned)</h3>
-<ul>
-<li>[ ] Stems separation integration</li>
-<li>[ ] Cloud sync capabilities</li>
-<li>[ ] Mobile companion app</li>
-<li>[ ] Plugin system for extensibility</li>
-<li>[ ] VST/AU plugin support</li>
-</ul>
-<h2 id="support">💬 Support</h2>
-<ul>
-<li><strong>Issues</strong>: <a href="https://github.com/esfingex/tonemix/issues">GitHub Issues</a></li>
-<li><strong>Discussions</strong>: <a href="https://github.com/esfingex/tonemix/discussions">GitHub Discussions</a></li>
-<li><strong>Email</strong>: <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#115;&#117;&#112;&#112;&#111;&#114;&#116;&#64;&#116;&#111;&#110;&#101;&#109;&#105;&#120;&#46;&#100;&#101;&#118;">&#115;&#117;&#112;&#112;&#111;&#114;&#116;&#64;&#116;&#111;&#110;&#101;&#109;&#105;&#120;&#46;&#100;&#101;&#118;</a></li>
-</ul>
-<h2 id="star-history">⭐ Star History</h2>
-<p>If you find ToneMix useful, please consider giving it a star! ⭐</p>
 <hr />
-<p><strong>Made with ❤️ by the ToneMix community</strong></p>
+<p><em>Generated by ToneMix DocGen</em></p>
         <footer>
             Built with ❤️ by ToneMix Team
         </footer>
