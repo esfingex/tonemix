@@ -11,7 +11,7 @@ import psutil
 from src.ui.utils.icons import get_icon
 from src.database.repository import PlaylistRepository, TrackRepository
 from src.utils.security import validate_playlist_name
-from src.ui.dialogs import DeletePlaylistDialog
+from src.ui.dialogs.playlist import DeletePlaylistDialog
 import os
 from pathlib import Path
 

@@ -98,6 +98,39 @@ class RekordboxExporter:
         if track.comment:
             track_elem.set('Comments', track.comment)
     
+    def export_playlist(self, tracks: List[Track], playlist_name: str, output_path: str) -> bool:
+        """Export single playlist with tracks to Rekordbox XML"""
+        try:
+            logger.info(f"Exporting playlist '{playlist_name}' to Rekordbox XML")
+            
+            # Create root
+            root = ET.Element('DJ_PLAYLISTS', Version=self.version)
+            ET.SubElement(root, 'PRODUCT', Name='ToneMix Pro', Version='0.1.0', Company='ToneMix')
+            
+            # Collection
+            collection = ET.SubElement(root, 'COLLECTION', Entries=str(len(tracks)))
+            for track in tracks:
+                self._add_track_node(collection, track)
+                
+            # Playlists
+            playlists_node = ET.SubElement(root, 'PLAYLISTS')
+            root_folder = ET.SubElement(playlists_node, 'NODE', Type='0', Name='ROOT')
+            
+            # Playlist Node
+            pl_node = ET.SubElement(root_folder, 'NODE', Type='1', Name=playlist_name, KeyType='TrackID', Entries=str(len(tracks)))
+            for track in tracks:
+                ET.SubElement(pl_node, 'TRACK', Key=str(track.id))
+                
+            # Write
+            xml_str = self._prettify_xml(root)
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(xml_str)
+                
+            return True
+        except Exception as e:
+            logger.error(f"Error exporting playlist XML: {e}")
+            return False
+
     def _prettify_xml(self, elem: ET.Element) -> str:
         """Return a pretty-printed XML string"""
         rough_string = ET.tostring(elem, encoding='utf-8')
