@@ -235,6 +235,7 @@ class Sidebar(QWidget):
             mount_path = Path(mount_point)
 
             # 1. Try XML (Best compatibility if present)
+            xml_loaded = False
             xml_candidates = [
                 mount_path / "rekordbox.xml",
                 mount_path / "PIONEER" / "rekordbox.xml",
@@ -283,14 +284,24 @@ class Sidebar(QWidget):
 
                         root_node = playlists_node.find('NODE')
                         if root_node:
+                            # Count total playlists for UI
+                            try:
+                                all_playlists = playlists_node.findall('.//NODE[@Type="1"]')
+                                count = len(all_playlists)
+                                current_text = device_item.text(0)
+                                device_item.setText(0, f"{current_text} ({count})")
+                            except:
+                                pass # Ignore counting errors
+
                             add_nodes(root_node, device_item)
                             device_item.setExpanded(True)
+                            xml_loaded = True
                 except Exception as e:
                     logger.error(f"Error parsing device XML: {e}")
 
-            # 2. Try PDB (Experimental)
+            # 2. Try PDB (Experimental) - Only if XML not used
             pdb_path = mount_path / "PIONEER" / "Rekordbox" / "export.pdb"
-            if pdb_path.exists():
+            if not xml_loaded and pdb_path.exists():
                 logger.info(f"Found PDB on device: {pdb_path}")
                 from src.importer.pdb_importer import DeviceSqlImporter
                 importer = DeviceSqlImporter()
