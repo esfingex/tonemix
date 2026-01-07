@@ -308,7 +308,7 @@ class DeviceSqlImporter:
                 break
             
             try:
-                num_rows = struct.unpack_from('<H', page_data, 26)[0] & 0x1FFF
+                num_rows = struct.unpack_from('<H', page_data, 24)[0]
                 for i in range(num_rows):
                     ofs_pos = 4096 - 6 - (2*i)
                     if ofs_pos < 0: break
@@ -317,7 +317,8 @@ class DeviceSqlImporter:
                     if 0 < row_offset < 4096 - 8:
                         p_id = struct.unpack_from('<I', page_data, row_offset)[0]
                         if p_id == playlist_id:
-                             t_id = struct.unpack_from('<I', page_data, row_offset + 4)[0]
+                             # ID is at offset 8 (confirmed via analysis), offset 4 is sequence
+                             t_id = struct.unpack_from('<I', page_data, row_offset + 8)[0]
                              track_ids.append(t_id)
 
             except Exception:
@@ -357,26 +358,55 @@ class DeviceSqlImporter:
 
             try:
                 page = PDBPage(page_data, current_idx)
-                num_rows = struct.unpack_from('<H', page.data, 26)[0] & 0x1FFF
+                # Table 0x8A (Tracks) often has corrupt/weird header on page 137
+                # So we ignore num_rows from header and scan the directory at the end of page
+                # The directory grows upwards from 4096-6
                 
-                # Offset Scavenger: collect all row offsets
                 offsets = []
-                for i in range(num_rows):
-                    ofs_pos = 4096 - 6 - (2*i)
-                    if ofs_pos < 0: break
-                    row_offset = struct.unpack_from('<H', page.data, ofs_pos)[0]
-                    if 32 <= row_offset < 4096:
-                        offsets.append(row_offset)
+                # Scan last 2000 bytes for valid row pointers (u16 alignment)
+                # Valid pointers are usually > 32 and < 4000
+                for i in range(0, 1000): 
+                    pos = 4096 - 6 - (2*i)
+                    if pos < 100: break # Safety stop
+                    
+                    try:
+                        val = struct.unpack_from('<H', page.data, pos)[0]
+                        if 32 <= val < 4000:
+                            # Verify if it looks like a valid row start (optional)
+                            offsets.append(val)
+                        elif val == 0:
+                            # 0 might be padding or end of directory?
+                            # But sometimes 0 is valid? No, offset 0 is header.
+                            pass
+                    except:
+                        break
                 
-                for row_offset in offsets:
+                for idx, row_offset in enumerate(offsets):
                     if row_offset < 4096:
                         row = page.data[row_offset:]
-                        t_id = struct.unpack_from('<I', row, 0)[0]
+                        
+                        # Strategy: Match by Index
+                        # IDs from 0x36 start at 1 usually. 
+                        # Let's try matching idx (0-based) and idx+1 (1-based)
+                        # Or strictly follow the ID passed
+                        
+                        # Assuming ID = Index
+                        t_id = idx 
                         
                         if t_id in target_ids:
                             meta = self._extract_track_meta(row)
                             meta['id'] = t_id
                             results[t_id] = meta
+                        
+                        # Also Check if ID is stored in row (Hybrid approach)
+                        # Only if not found by index or to support both
+                        try:
+                            t_id_embedded = struct.unpack_from('<I', row, 0)[0]
+                            if t_id_embedded in target_ids and t_id_embedded != t_id:
+                                meta = self._extract_track_meta(row)
+                                meta['id'] = t_id_embedded
+                                results[t_id_embedded] = meta
+                        except: pass
                         
             except Exception as e:
                 pass

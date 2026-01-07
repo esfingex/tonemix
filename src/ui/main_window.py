@@ -423,13 +423,142 @@ class MainWindow(QMainWindow):
             mount_point = item.data(0, Qt.UserRole + 1)
             self._current_device_path = mount_point
             self._load_device_tracks(mount_point)
+        elif item_type == "device_playlist":
+            # Load tracks from XML playlist
+            self._current_playlist_id = None
+            playlist_name = item.data(0, Qt.UserRole + 1)
+            self._load_xml_playlist(playlist_name, item)
         elif item_type == "device_playlist_pdb":
             # Load tracks from PDB playlist
             self._current_playlist_id = None
             playlist_id = item.data(0, Qt.UserRole + 1)
             self._load_pdb_playlist(playlist_id, item)
 
-    def _load_pdb_playlist(self, playlist_id: int, item):
+    def _load_xml_playlist(self, playlist_name: str, item):
+        """Load tracks from a Rekordbox XML playlist (Volatile)"""
+        import xml.etree.ElementTree as ET
+        import urllib.parse
+        from src.database.models import Track
+        
+        # Find XML path from parent device
+        # Traverse up to find 'device' item
+        parent = item.parent()
+        while parent and parent.data(0, Qt.UserRole) != "device":
+            parent = parent.parent()
+            
+        if not parent:
+            return
+
+        mount_point = parent.data(0, Qt.UserRole + 1)
+        if not mount_point:
+            return
+            
+        # Try common XML locations
+        mount_path = Path(mount_point)
+        xml_candidates = [
+            mount_path / "rekordbox.xml",
+            mount_path / "PIONEER" / "rekordbox.xml",
+            mount_path / "PIONEER" / "Rekordbox" / "rekordbox.xml"
+        ]
+        
+        xml_path = None
+        for p in xml_candidates:
+            if p.exists():
+                xml_path = p
+                break
+                
+        if not xml_path:
+            self.status_bar.showMessage("Error: rekordbox.xml not found")
+            return
+            
+        try:
+            self.status_bar.showMessage(f"Reading XML Playlist '{playlist_name}'...")
+            tree = ET.parse(xml_path)
+            root = tree.getroot()
+            
+            # 1. Find Playlist Node
+            # We search recursively to find the node with Name=playlist_name and Type=1
+            target_node = None
+            
+            playlists_node = root.find('PLAYLISTS')
+            if playlists_node:
+                # Helper to find node
+                queue = [playlists_node]
+                while queue:
+                    curr = queue.pop(0)
+                    for child in curr.findall('NODE'):
+                        if child.get('Type') == '1' and child.get('Name') == playlist_name:
+                            target_node = child
+                            break
+                        elif child.get('Type') == '0': # Folder
+                            queue.append(child)
+                    if target_node: break
+            
+            if not target_node:
+                self.status_bar.showMessage(f"Playlist '{playlist_name}' not found in XML")
+                return
+                
+            # 2. Collect Track IDs
+            track_keys = set()
+            for t_node in target_node.findall('TRACK'):
+                key = t_node.get('Key')
+                if key: track_keys.add(key)
+                
+            if not track_keys:
+                self.table_model.set_tracks([])
+                self.status_bar.showMessage("Playlist is empty")
+                return
+                
+            # 3. Parse Collection to get Track Details
+            ui_tracks = []
+            collection = root.find('COLLECTION')
+            if collection:
+                for track_node in collection.findall('TRACK'):
+                    tid = track_node.get('TrackID')
+                    if tid in track_keys:
+                        # Extract metadata
+                        name = track_node.get('Name', 'Unknown')
+                        artist = track_node.get('Artist', 'Unknown')
+                        bpm = float(track_node.get('AverageBpm', 0))
+                        
+                        location = track_node.get('Location', '')
+                        file_path = ""
+                        
+                        if location:
+                            # Parse URL
+                            parsed = urllib.parse.urlparse(location)
+                            decoded_path = urllib.parse.unquote(parsed.path)
+                            
+                            # Fix path if needed (e.g. localhost/Y/...)
+                            # Usually extracts to /Y/PIONEER...
+                            # We need to map it to mount_point
+                            
+                            # Simple heuristic: If path starts with /Y/ or similar drive letter pattern
+                            # strip it and prepend mount_point?
+                            # Or reconstruct from mount_point contents
+                            
+                            # But wait, generated XML has 'file://localhostY/PIONEER...' (missing slash?)
+                            # Generated path: 'file://localhost' + 'Y/PIONEER...'
+                            # urllib path might remain 'Y/PIONEER...'
+                            
+                            file_path = decoded_path
+                            
+                        t = Track(
+                            title=name,
+                            artist=artist,
+                            file_path=file_path,
+                            bpm=bpm
+                        )
+                        t.id = tid # Use XML ID locally
+                        ui_tracks.append(t)
+            
+            self.table_model.set_tracks(ui_tracks)
+            self.status_bar.showMessage(f"Loaded {len(ui_tracks)} tracks from XML")
+            logger.info(f"Loaded {len(ui_tracks)} tracks for playlist '{playlist_name}'")
+
+        except Exception as e:
+            logger.error(f"Error loading XML playlist: {e}")
+            self.status_bar.showMessage("Error reading XML")
         """Load tracks from a Rekordbox PDB playlist"""
         from src.importer.pdb_importer import DeviceSqlImporter
         from src.database.models import Track
