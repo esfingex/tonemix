@@ -174,8 +174,8 @@ class DeviceSqlImporter:
                         try:
                             playlist_id = struct.unpack_from('<I', page_data, match_offset - 13)[0]
                             
-                            # Sanity check: ID should be reasonable (0-20000)
-                            if 0 < playlist_id < 20000:
+                            # Sanity check: ID should be reasonable (0-20000, including 0)
+                            if playlist_id < 20000:
                                 if text not in candidates:
                                     candidates[text] = set()
                                 candidates[text].add(playlist_id)
@@ -210,7 +210,8 @@ class DeviceSqlImporter:
                 elif score == max_count and score > -1:
                     best_id = max(best_id, pid)
                     
-            if best_id > 0:
+            # Allow ID 0 (it's a valid playlist index)
+            if best_id >= 0 and max_count > -1:
                 if name not in ['Playlists', 'ROOT']:
                     final_count = active_counts.get(best_id, 0)
                     results.append({'name': name, 'id': best_id, 'count': final_count})
