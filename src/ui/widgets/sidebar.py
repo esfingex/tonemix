@@ -297,6 +297,10 @@ class Sidebar(QWidget):
                 if importer.open(str(pdb_path)):
                     playlists = importer.read_playlists()
                     if playlists:
+                        # Update device header with count
+                        current_text = device_item.text(0)
+                        device_item.setText(0, f"{current_text} ({len(playlists)})")
+                        
                         for pl in playlists:
                             pl_item = QTreeWidgetItem(device_item)
                             pl_item.setText(0, pl.get('name', 'Unknown'))
@@ -308,7 +312,8 @@ class Sidebar(QWidget):
                             pl_item.setToolTip(0, "Imported from export.pdb (DeviceSQL)")
                     else:
                         # Show empty or "No Playlists / PDB Support Incomplete"
-                        pass
+                        current_text = device_item.text(0)
+                        device_item.setText(0, f"{current_text} (0)")
         except Exception as e:
             logger.error(f"Error scanning device playlists: {e}")
 
