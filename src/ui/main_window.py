@@ -438,6 +438,7 @@ class MainWindow(QMainWindow):
         """Load tracks from a Rekordbox XML playlist (Volatile)"""
         import xml.etree.ElementTree as ET
         import urllib.parse
+        from pathlib import Path
         from src.database.models import Track
         
         # Find XML path from parent device
